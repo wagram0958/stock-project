@@ -11,7 +11,9 @@ analysis toward a semiconductor and technology supply-chain research style.
 The goal is to evolve this from a simple screener into a research assistant for
 Taiwan stocks, AI infrastructure, robotics, and semiconductor supply chains.
 
-For the longer-term product direction, see `RESEARCH_SYSTEM.md`.
+For the longer-term product direction, see `RESEARCH_SYSTEM.md`. For companies
+under active financial statement and conference call monitoring, see
+`EARNINGS_WATCHLIST.md`.
 
 ## Features
 
@@ -40,6 +42,7 @@ The maximum score is 5.
 ```text
 .
 ├── AGENTS.md
+├── EARNINGS_WATCHLIST.md
 ├── RESEARCH_SYSTEM.md
 ├── data/
 │   └── sample_stocks.csv
