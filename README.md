@@ -6,6 +6,11 @@ dividend yield, price trend, and trading volume.
 This project is designed as a clean starter version for a GitHub portfolio or
 for later expansion into a Taiwan stock screening tool.
 
+It also includes a Codex instruction file, `AGENTS.md`, that guides future
+analysis toward a semiconductor and technology supply-chain research style.
+The goal is to evolve this from a simple screener into a research assistant for
+Taiwan stocks, AI infrastructure, robotics, and semiconductor supply chains.
+
 ## Features
 
 - Load stock fundamentals and technical indicators from a CSV file
@@ -32,12 +37,31 @@ The maximum score is 5.
 
 ```text
 .
+├── AGENTS.md
 ├── data/
 │   └── sample_stocks.csv
 ├── stock_screener.py
 ├── requirements.txt
 └── README.md
 ```
+
+## Codex Analysis Framework
+
+This repository includes an `AGENTS.md` file for Codex. When working inside
+this project, Codex should use a senior semiconductor analyst style for stock
+and supply-chain questions:
+
+- Confirm industry trends and demand direction
+- Map the supply chain from upstream to downstream
+- Compare company fundamentals, margins, customers, and competitive position
+- Separate short-term themes from long-term fundamentals
+- Use valuation methods such as PE, PB, EV/EBITDA, or DCF where appropriate
+- Provide conservative, base, and optimistic valuation scenarios when enough
+  data is available
+
+The current Python script is still a starter screener. The analysis framework
+is intended to guide future expansion into deeper semiconductor and Taiwan
+equity research.
 
 ## Quick Start
 
@@ -104,6 +128,9 @@ Top stock candidates
 - Add Taiwan stock market data import
 - Add technical indicators such as RSI and MACD
 - Add industry-based ranking
+- Add semiconductor supply-chain category tags
+- Add valuation scenario output
+- Add analyst-style report generation
 - Export results to Excel
 - Build a web dashboard
 - Add backtesting
