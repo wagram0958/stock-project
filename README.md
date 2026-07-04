@@ -11,6 +11,8 @@ analysis toward a semiconductor and technology supply-chain research style.
 The goal is to evolve this from a simple screener into a research assistant for
 Taiwan stocks, AI infrastructure, robotics, and semiconductor supply chains.
 
+For the longer-term product direction, see `RESEARCH_SYSTEM.md`.
+
 ## Features
 
 - Load stock fundamentals and technical indicators from a CSV file
@@ -38,6 +40,7 @@ The maximum score is 5.
 ```text
 .
 ├── AGENTS.md
+├── RESEARCH_SYSTEM.md
 ├── data/
 │   └── sample_stocks.csv
 ├── stock_screener.py
