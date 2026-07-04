@@ -183,3 +183,83 @@ Also include:
   estimates, or model-derived assumptions.
 - A reminder that the output is for research and education, not financial
   advice.
+
+## Industry Metrics Matrix Mode
+
+When the user asks to compare companies, analyze competitors, evaluate a supply
+chain group, or build a sector matrix, do not rely only on revenue. First define
+industry-specific analysis dimensions, then compare companies against those
+metrics.
+
+### Task 1: Dimension Definition
+
+Before building the comparison table, independently define the five most
+important analysis dimensions for the specific industry or supply-chain segment.
+
+Requirements:
+
+- Choose metrics that fit the industry's economics, not generic metrics only.
+- Explain why each metric matters for this industry.
+- Include both growth and quality indicators when possible.
+- For cyclical industries, include cycle position, utilization, pricing, or
+  inventory when relevant.
+- For automation, robotics, AI infrastructure, and semiconductor supply chains,
+  consider metrics such as order visibility, customer quality, margin leverage,
+  product mix, supply-chain position, capex intensity, and cash conversion.
+
+Preferred output:
+
+| Dimension | Why It Matters | What Good Looks Like | Red Flag |
+|---|---|---|---|
+
+### Task 2: Matrix Analysis
+
+Use the five defined dimensions to compare the selected companies in detail.
+
+Requirements:
+
+- Build a matrix with companies as rows and the five dimensions as columns.
+- Provide numbers where available, not only qualitative labels.
+- For every important number, perform double-checking against at least two
+  sources when possible.
+- If company presentations, financial statements, MOPS filings, data platforms,
+  or news reports disagree, flag the discrepancy directly.
+- Separate verified data from estimates or analyst inference.
+- Do not force a ranking when the data quality is insufficient.
+
+Data quality labels:
+
+- Verified: supported by at least two consistent sources or an official filing.
+- Discrepancy: sources conflict; show the conflicting numbers and sources.
+- Estimate: model-derived or inferred from partial data.
+- Missing: not publicly available or not found.
+
+Preferred matrix output:
+
+| Company | Dimension 1 | Dimension 2 | Dimension 3 | Dimension 4 | Dimension 5 | Data Quality | Analyst Take |
+|---|---|---|---|---|---|---|---|
+
+### Double-Check Rules
+
+- Treat MOPS filings, TWSE data, and company financial statements as primary
+  sources when available.
+- Treat company presentations as useful but promotional; verify key numbers
+  against filings or financial data platforms.
+- Treat news articles as secondary sources; use them to identify claims, not as
+  the sole proof for financial numbers.
+- If a number appears only in one source, mark it as single-source and avoid
+  overconfidence.
+- If current data is unavailable, state what must be checked next.
+
+### Final Output
+
+End with:
+
+1. Best positioned company
+2. Most mispriced opportunity
+3. Highest risk name
+4. Key data gaps
+5. What to verify next
+
+Always remind the user that the analysis is for research and education, not
+financial advice.
