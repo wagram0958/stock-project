@@ -15,6 +15,19 @@ and management language may reveal underpriced opportunities or hidden risks.
 
 ## 6226 光鼎 Research Checklist
 
+### Current Radar Note
+
+**Radar status:** High risk / watchlist only.
+
+光鼎 remains a watchlist name, but current public data does not yet support upgrading it into a confirmed growth name. Recent checks show a durable forensic question: the company can show reasonable gross margin, but revenue scale and operating leverage must improve before valuation can be justified by fundamentals rather than theme attention.
+
+**Key evidence to preserve:**
+
+- Monthly revenue is the first trigger. If revenue stays around a flat or declining run-rate, the turnaround thesis remains unconfirmed.
+- Gross margin must be compared with operating expense absorption. Gross margin alone is not enough if operating income remains negative.
+- Management commentary, investor presentations, or conference-call materials must be checked for actual product/customer mix, not only generic LED, optoelectronic, AI, automotive, industrial, or robotics wording.
+- If no official investor presentation or conference-call transcript is available, mark management-language quality as missing rather than inferring optimism from news.
+
 ### Core Questions
 
 - Is recent price momentum supported by improving fundamentals, or mostly by
@@ -27,6 +40,8 @@ and management language may reveal underpriced opportunities or hidden risks.
 - Is operating cash flow consistent with reported earnings?
 - Are inventory, receivables, or payables showing early warning signs?
 - Does management provide clear demand visibility, or rely on vague optimism?
+- Is there verified evidence of exposure to AI infrastructure, robotics, automotive,
+  industrial, specialty lighting, or other higher-margin applications?
 
 ### Data to Monitor
 
@@ -37,6 +52,7 @@ and management language may reveal underpriced opportunities or hidden risks.
 - Major announcements and attention-trading disclosures
 - Investor presentation, conference call, or shareholder meeting materials
 - Customer, product, and market-mix commentary
+- Any official explanation of product mix shift or margin recovery
 
 ### Forensic Angle
 
@@ -48,6 +64,8 @@ company. Focus on:
 - Whether market expectations are running ahead of confirmed fundamentals
 - Any underpriced optionality from LED, optoelectronics, display, automotive,
   industrial, or specialty lighting demand
+- Whether AI/robotics/optoelectronic wording is tied to actual revenue and margin,
+  or only functions as market narrative
 
 ## Source Priority
 
