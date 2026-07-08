@@ -327,3 +327,16 @@ The CIO Final Call must choose one label:
   required to justify the current price.
 - Always include material risks and remind the user that the output is for
   research and education, not financial advice.
+
+## Intraday Data and Risk Workflow
+
+For intraday stock tasks, Codex must also follow `HERMES.md`, especially the section `盤中資料與風控提醒流程 v1.1`.
+
+Intraday updates must not only report prices. They must also output:
+
+- Latest price, change, intraday high/low, previous close, volume, and data time.
+- Near-term support and resistance.
+- Trigger status: normal, alert, reduce, exit, or no-chase.
+- If the user is currently holding the position, provide a clear status reminder instead of only saying "observe".
+
+All outputs are for research, education, and risk-management reminders. They are not financial advice.
