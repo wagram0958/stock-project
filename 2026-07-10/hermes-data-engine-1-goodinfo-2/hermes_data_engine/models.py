@@ -98,6 +98,7 @@ def build_document(
     if document["eps"] is not None and document["eps"] <= 0:
         document["pe"] = None
         document["sources"]["pe"]["status"] = "unavailable"
+        document["quality"]["status"] = "partial"
     return document
 
 

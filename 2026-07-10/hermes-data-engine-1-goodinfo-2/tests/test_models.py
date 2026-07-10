@@ -56,7 +56,7 @@ def test_document_has_required_fields_and_provenance():
         "status": "verified",
     }
     assert document["sources"]["eps"]["period"] == "2026-Q1"
-    assert document["quality"] == {"status": "complete", "issues": []}
+    assert document["quality"] == {"status": "partial", "issues": []}
     validate_document(document)
 
 
