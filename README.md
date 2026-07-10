@@ -107,6 +107,28 @@ Goodinfo and the official source disagree on stock symbol, trade date, closing
 price, or volume, the command outputs `資料驗證失敗` and does not output price
 fields.
 
+Market data validation now includes a confidence gate. Hermes analysis is
+allowed only when every check passes:
+
+```text
+Confidence: 100%
+
+Goodinfo        ✔
+TWSE / TPEx     ✔
+股票代號        ✔
+交易日期        ✔
+收盤價          ✔
+成交量          ✔
+```
+
+If confidence is below 100%, the command outputs `DATA_VALIDATION_FAILED`,
+does not emit price fields, and must not be used for support/resistance,
+position advice, add/reduce/stop-loss decisions, or Hermes debate.
+
+Each validation attempt also writes an audit log under
+`logs/market_validation/` with the requested symbol/date, fetch time, Goodinfo
+raw values, official values, confidence score, success flag, and error message.
+
 ## CSV Format
 
 Your CSV file should include these columns:

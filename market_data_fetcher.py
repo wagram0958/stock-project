@@ -20,6 +20,10 @@ GOODINFO_URL = "https://goodinfo.tw/tw/ShowK_Chart.asp"
 TWSE_STOCK_DAY_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY"
 TPEX_STOCK_DAY_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
 DEFAULT_OUTPUT_DIR = Path("data/market_data")
+DEFAULT_AUDIT_LOG_DIR = Path("logs/market_validation")
+DATA_VALIDATION_FAILED = "DATA_VALIDATION_FAILED"
+VALIDATION_SUCCESS = "驗證成功"
+CONFIDENCE_CHECKS = ["Goodinfo", "TWSE / TPEx", "股票代號", "交易日期", "收盤價", "成交量"]
 
 
 @dataclass(frozen=True)
@@ -51,6 +55,8 @@ class ValidationResult:
     is_valid: bool
     status: str
     mismatches: list[str]
+    confidence_score: int
+    checks: dict[str, bool]
 
 
 class TableParser(HTMLParser):
@@ -366,19 +372,34 @@ def find_field(fields: list[str], candidates: list[str]) -> int:
 
 
 def validate_market_data(goodinfo: MarketDataRecord, official: OfficialRecord) -> ValidationResult:
-    mismatches: list[str] = []
-    if goodinfo.symbol != official.symbol:
-        mismatches.append("股票代號")
-    if goodinfo.trade_date != official.trade_date:
-        mismatches.append("交易日期")
-    if round(goodinfo.close_price, 2) != round(official.close_price, 2):
-        mismatches.append("收盤價")
-    if goodinfo.volume != official.volume:
-        mismatches.append("成交量")
+    checks = {
+        "Goodinfo": goodinfo is not None,
+        "TWSE / TPEx": official.source in {"TWSE", "TPEx"},
+        "股票代號": goodinfo.symbol == official.symbol,
+        "交易日期": goodinfo.trade_date == official.trade_date,
+        "收盤價": round(goodinfo.close_price, 2) == round(official.close_price, 2),
+        "成交量": goodinfo.volume == official.volume,
+    }
+    mismatches = [name for name, passed in checks.items() if not passed]
+    confidence_score = calculate_confidence_score(checks)
 
-    if mismatches:
-        return ValidationResult(False, "資料驗證失敗", mismatches)
-    return ValidationResult(True, "驗證成功", [])
+    if confidence_score != 100:
+        return ValidationResult(False, DATA_VALIDATION_FAILED, mismatches, confidence_score, checks)
+    return ValidationResult(True, VALIDATION_SUCCESS, [], confidence_score, checks)
+
+
+def failed_validation_result(error_check: str) -> ValidationResult:
+    checks = {name: False for name in CONFIDENCE_CHECKS}
+    if error_check in checks:
+        checks[error_check] = False
+    return ValidationResult(False, DATA_VALIDATION_FAILED, list(checks), 0, checks)
+
+
+def calculate_confidence_score(checks: dict[str, bool]) -> int:
+    if not checks:
+        return 0
+    passed = sum(1 for passed_check in checks.values() if passed_check)
+    return round(passed / len(checks) * 100)
 
 
 def build_report(
@@ -394,6 +415,9 @@ def build_report(
         "fetched_at": fetched_at.isoformat(timespec="seconds"),
         "session": classify_session(fetched_at),
         "validation_status": validation.status,
+        "confidence_score": validation.confidence_score,
+        "confidence_checks": validation.checks,
+        "hermes_analysis_allowed": validation.confidence_score == 100,
         "is_delayed": True,
     }
     if validation.mismatches:
@@ -430,17 +454,92 @@ def save_report(report: dict[str, Any], output_root: Path = DEFAULT_OUTPUT_DIR) 
     return candidate
 
 
+def save_audit_log(
+    requested_symbol: str,
+    requested_date: str,
+    fetched_at: datetime,
+    goodinfo: MarketDataRecord | None,
+    official: OfficialRecord | None,
+    validation: ValidationResult,
+    error_message: str = "",
+    log_root: Path = DEFAULT_AUDIT_LOG_DIR,
+) -> Path:
+    audit = {
+        "requested_symbol": requested_symbol,
+        "requested_date": requested_date,
+        "fetched_at": fetched_at.isoformat(timespec="seconds"),
+        "goodinfo_raw": asdict(goodinfo) if goodinfo else None,
+        "official_raw": asdict(official) if official else None,
+        "confidence_score": validation.confidence_score,
+        "confidence_checks": validation.checks,
+        "success": validation.is_valid,
+        "error_message": error_message,
+    }
+
+    safe_timestamp = fetched_at.isoformat(timespec="seconds").replace(":", "").replace("-", "").replace("T", "_")
+    log_root.mkdir(parents=True, exist_ok=True)
+    candidate = log_root / f"{requested_symbol}_{requested_date}_{safe_timestamp}.json"
+    suffix = 1
+    while candidate.exists():
+        candidate = log_root / f"{requested_symbol}_{requested_date}_{safe_timestamp}_{suffix}.json"
+        suffix += 1
+
+    candidate.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+    return candidate
+
+
+def build_fail_safe_report(
+    symbol: str,
+    trade_date: str,
+    fetched_at: datetime,
+    validation: ValidationResult,
+    error_message: str,
+) -> dict[str, Any]:
+    return {
+        "symbol": symbol,
+        "trade_date": trade_date,
+        "fetched_at": fetched_at.isoformat(timespec="seconds"),
+        "validation_status": DATA_VALIDATION_FAILED,
+        "confidence_score": validation.confidence_score,
+        "confidence_checks": validation.checks,
+        "hermes_analysis_allowed": False,
+        "error_message": error_message,
+    }
+
+
 def print_report(report: dict[str, Any]) -> None:
+    if report.get("validation_status") == DATA_VALIDATION_FAILED:
+        print(DATA_VALIDATION_FAILED)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
-def fetch_validate_and_save(symbol: str, trade_date: str, output_root: Path = DEFAULT_OUTPUT_DIR) -> dict[str, Any]:
-    goodinfo = fetch_goodinfo_record(symbol, trade_date)
-    official = fetch_official_record(symbol, trade_date)
-    validation = validate_market_data(goodinfo, official)
-    report = build_report(goodinfo, official, validation, datetime.now())
+def fetch_validate_and_save(
+    symbol: str,
+    trade_date: str,
+    output_root: Path = DEFAULT_OUTPUT_DIR,
+    audit_log_root: Path = DEFAULT_AUDIT_LOG_DIR,
+) -> dict[str, Any]:
+    fetched_at = datetime.now()
+    goodinfo: MarketDataRecord | None = None
+    official: OfficialRecord | None = None
+    error_message = ""
+
+    try:
+        goodinfo = fetch_goodinfo_record(symbol, trade_date)
+        official = fetch_official_record(symbol, trade_date)
+        validation = validate_market_data(goodinfo, official)
+        report = build_report(goodinfo, official, validation, fetched_at)
+        if not validation.is_valid:
+            error_message = ", ".join(validation.mismatches)
+    except (URLError, ValueError, json.JSONDecodeError, csv.Error) as exc:
+        error_message = str(exc)
+        validation = failed_validation_result("Goodinfo" if goodinfo is None else "TWSE / TPEx")
+        report = build_fail_safe_report(symbol, trade_date, fetched_at, validation, error_message)
+
     saved_path = save_report(report, output_root)
+    audit_path = save_audit_log(symbol, trade_date, fetched_at, goodinfo, official, validation, error_message, audit_log_root)
     report["saved_path"] = str(saved_path)
+    report["audit_log_path"] = str(audit_path)
     return report
 
 
@@ -459,15 +558,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    try:
-        report = fetch_validate_and_save(args.symbol, args.date, args.output_dir)
-    except (URLError, ValueError, json.JSONDecodeError, csv.Error) as exc:
-        print("資料驗證失敗")
-        print(str(exc))
-        return 1
-
+    report = fetch_validate_and_save(args.symbol, args.date, args.output_dir)
     print_report(report)
-    return 0 if report["validation_status"] == "驗證成功" else 1
+    return 0 if report["validation_status"] == VALIDATION_SUCCESS else 1
 
 
 if __name__ == "__main__":

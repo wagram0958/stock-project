@@ -8,12 +8,15 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from market_data_fetcher import (
+    DATA_VALIDATION_FAILED,
     MarketDataRecord,
     OfficialRecord,
     build_report,
+    fetch_validate_and_save,
     fetch_goodinfo_record,
     parse_official_table,
     parse_goodinfo_daily_table,
+    save_audit_log,
     save_report,
     validate_market_data,
 )
@@ -211,10 +214,12 @@ class MarketDataFetcherTests(unittest.TestCase):
         report = build_report(goodinfo, official, validation, datetime(2026, 7, 10, 9, 30, 0))
 
         self.assertFalse(validation.is_valid)
-        self.assertIn("資料驗證失敗", validation.status)
+        self.assertEqual(validation.status, DATA_VALIDATION_FAILED)
+        self.assertLess(validation.confidence_score, 100)
         self.assertNotIn("goodinfo_raw", report)
         self.assertNotIn("official_raw", report)
-        self.assertEqual(report["validation_status"], "資料驗證失敗")
+        self.assertEqual(report["validation_status"], DATA_VALIDATION_FAILED)
+        self.assertEqual(report["confidence_score"], validation.confidence_score)
 
     def test_six_target_symbols_validate_against_official_records(self) -> None:
         cases = [
@@ -245,6 +250,110 @@ class MarketDataFetcherTests(unittest.TestCase):
 
                 self.assertTrue(validation.is_valid)
                 self.assertEqual(validation.status, "驗證成功")
+                self.assertEqual(validation.confidence_score, 100)
+                self.assertTrue(all(validation.checks.values()))
+
+    def test_success_report_includes_100_percent_confidence_gate(self) -> None:
+        goodinfo = MarketDataRecord(
+            symbol="1314",
+            name="中石化",
+            trade_date="2026-07-09",
+            open_price=9.60,
+            high_price=9.61,
+            low_price=8.83,
+            close_price=8.90,
+            previous_close=9.70,
+            change=-0.80,
+            change_percent=-8.25,
+            volume=155_533,
+        )
+        official = OfficialRecord(
+            source="TWSE",
+            symbol="1314",
+            trade_date="2026-07-09",
+            close_price=8.90,
+            volume=155_533,
+        )
+
+        validation = validate_market_data(goodinfo, official)
+        report = build_report(goodinfo, official, validation, datetime(2026, 7, 10, 13, 29, 43))
+
+        self.assertEqual(report["confidence_score"], 100)
+        self.assertTrue(report["hermes_analysis_allowed"])
+        self.assertEqual(
+            report["confidence_checks"],
+            {
+                "Goodinfo": True,
+                "TWSE / TPEx": True,
+                "股票代號": True,
+                "交易日期": True,
+                "收盤價": True,
+                "成交量": True,
+            },
+        )
+
+    def test_audit_log_saves_raw_values_and_error_message(self) -> None:
+        goodinfo = MarketDataRecord(
+            symbol="1314",
+            name="中石化",
+            trade_date="2026-07-09",
+            open_price=9.60,
+            high_price=9.61,
+            low_price=8.83,
+            close_price=8.90,
+            previous_close=9.70,
+            change=-0.80,
+            change_percent=-8.25,
+            volume=155_533,
+        )
+        official = OfficialRecord(
+            source="TWSE",
+            symbol="1314",
+            trade_date="2026-07-09",
+            close_price=8.91,
+            volume=155_533,
+        )
+        validation = validate_market_data(goodinfo, official)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = save_audit_log(
+                "1314",
+                "2026-07-09",
+                datetime(2026, 7, 10, 13, 29, 43),
+                goodinfo,
+                official,
+                validation,
+                "close mismatch",
+                Path(temp_dir),
+            )
+            audit = json.loads(path.read_text(encoding="utf-8"))
+
+        self.assertEqual(audit["requested_symbol"], "1314")
+        self.assertEqual(audit["requested_date"], "2026-07-09")
+        self.assertEqual(audit["goodinfo_raw"]["close_price"], 8.90)
+        self.assertEqual(audit["official_raw"]["close_price"], 8.91)
+        self.assertLess(audit["confidence_score"], 100)
+        self.assertFalse(audit["success"])
+        self.assertEqual(audit["error_message"], "close mismatch")
+
+    def test_source_failure_returns_fail_safe_report_and_audit_log(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch("market_data_fetcher.fetch_goodinfo_record", side_effect=ValueError("Goodinfo unavailable")):
+                report = fetch_validate_and_save(
+                    "1314",
+                    "2026-07-09",
+                    Path(temp_dir) / "market_data",
+                    Path(temp_dir) / "market_validation",
+                )
+
+            audit_files = list((Path(temp_dir) / "market_validation").glob("*.json"))
+
+        self.assertEqual(report["validation_status"], DATA_VALIDATION_FAILED)
+        self.assertEqual(report["confidence_score"], 0)
+        self.assertFalse(report["hermes_analysis_allowed"])
+        self.assertIn("Goodinfo unavailable", report["error_message"])
+        self.assertNotIn("goodinfo_raw", report)
+        self.assertEqual(len(audit_files), 1)
 
     def test_official_share_volume_is_rounded_to_lots_for_goodinfo_comparison(self) -> None:
         record = parse_official_table(
