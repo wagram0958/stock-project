@@ -75,6 +75,17 @@ def test_quality_aggregates_worst_observation_status():
     assert document["quality"]["status"] == "partial"
 
 
+@pytest.mark.parametrize("status", ["mismatch", "stale"])
+def test_negative_eps_preserves_worse_quality_status(status):
+    observations = sample_observations()
+    observations["volume"] = Observation(
+        1_000_000, "TWSE", "2026-07-10", "2026-07-10T08:00:00Z", status
+    )
+    document = build_document("3033", observations, "2026-07-10T09:00:00Z")
+    assert document["sources"]["pe"]["status"] == "unavailable"
+    assert document["quality"]["status"] == status
+
+
 def test_schema_rejects_missing_and_invalid_fields():
     document = build_document(
         "3033", sample_observations(), "2026-07-10T09:00:00Z"

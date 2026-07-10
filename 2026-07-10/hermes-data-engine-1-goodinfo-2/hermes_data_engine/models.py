@@ -53,8 +53,7 @@ class Observation:
     period: str | None = None
 
 
-def _quality_status(observations: Mapping[str, Observation]) -> str:
-    statuses = {observation.status for observation in observations.values()}
+def _aggregate_quality_status(statuses: set[str]) -> str:
     if "mismatch" in statuses:
         return "mismatch"
     if "stale" in statuses:
@@ -62,6 +61,12 @@ def _quality_status(observations: Mapping[str, Observation]) -> str:
     if statuses - {"verified"}:
         return "partial"
     return "complete"
+
+
+def _quality_status(observations: Mapping[str, Observation]) -> str:
+    return _aggregate_quality_status(
+        {observation.status for observation in observations.values()}
+    )
 
 
 def build_document(
@@ -98,7 +103,9 @@ def build_document(
     if document["eps"] is not None and document["eps"] <= 0:
         document["pe"] = None
         document["sources"]["pe"]["status"] = "unavailable"
-        document["quality"]["status"] = "partial"
+        document["quality"]["status"] = _aggregate_quality_status(
+            {provenance["status"] for provenance in document["sources"].values()}
+        )
     return document
 
 
