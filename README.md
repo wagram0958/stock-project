@@ -113,21 +113,34 @@ allowed only when every check passes:
 ```text
 Confidence: 100%
 
-Goodinfo        ✔
-TWSE / TPEx     ✔
-股票代號        ✔
-交易日期        ✔
-收盤價          ✔
-成交量          ✔
+Goodinfo        ✔ 20
+TWSE / TPEx     ✔ 20
+股票代號        ✔ 20
+交易日期        ✔ 20
+成交量          ✔ 10
+收盤價          ✔ 10
 ```
 
 If confidence is below 100%, the command outputs `DATA_VALIDATION_FAILED`,
 does not emit price fields, and must not be used for support/resistance,
 position advice, add/reduce/stop-loss decisions, or Hermes debate.
 
+The output also includes `verification_reason` for debugging:
+
+```text
+PASS
+GOODINFO_TIMEOUT
+TWSE_MISMATCH
+WRONG_SYMBOL
+WRONG_DATE
+PRICE_MISMATCH
+VOLUME_MISMATCH
+```
+
 Each validation attempt also writes an audit log under
 `logs/market_validation/` with the requested symbol/date, fetch time, Goodinfo
-raw values, official values, confidence score, success flag, and error message.
+raw values, official values, confidence score, verification reason, success
+flag, and error message.
 
 ## CSV Format
 

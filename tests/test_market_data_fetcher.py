@@ -215,11 +215,13 @@ class MarketDataFetcherTests(unittest.TestCase):
 
         self.assertFalse(validation.is_valid)
         self.assertEqual(validation.status, DATA_VALIDATION_FAILED)
-        self.assertLess(validation.confidence_score, 100)
+        self.assertEqual(validation.confidence_score, 90)
+        self.assertEqual(validation.verification_reason, "PRICE_MISMATCH")
         self.assertNotIn("goodinfo_raw", report)
         self.assertNotIn("official_raw", report)
         self.assertEqual(report["validation_status"], DATA_VALIDATION_FAILED)
         self.assertEqual(report["confidence_score"], validation.confidence_score)
+        self.assertEqual(report["verification_reason"], "PRICE_MISMATCH")
 
     def test_six_target_symbols_validate_against_official_records(self) -> None:
         cases = [
@@ -251,7 +253,54 @@ class MarketDataFetcherTests(unittest.TestCase):
                 self.assertTrue(validation.is_valid)
                 self.assertEqual(validation.status, "驗證成功")
                 self.assertEqual(validation.confidence_score, 100)
+                self.assertEqual(validation.verification_reason, "PASS")
                 self.assertTrue(all(validation.checks.values()))
+
+    def test_confidence_score_uses_weighted_checks_and_reasons(self) -> None:
+        goodinfo = MarketDataRecord(
+            symbol="1314",
+            name="中石化",
+            trade_date="2026-07-09",
+            open_price=9.60,
+            high_price=9.61,
+            low_price=8.83,
+            close_price=8.90,
+            previous_close=9.70,
+            change=-0.80,
+            change_percent=-8.25,
+            volume=155_533,
+        )
+
+        cases = [
+            (
+                OfficialRecord("TWSE", "9999", "2026-07-09", 8.90, 155_533),
+                80,
+                "WRONG_SYMBOL",
+            ),
+            (
+                OfficialRecord("TWSE", "1314", "2026-07-08", 8.90, 155_533),
+                80,
+                "WRONG_DATE",
+            ),
+            (
+                OfficialRecord("TWSE", "1314", "2026-07-09", 8.91, 155_533),
+                90,
+                "PRICE_MISMATCH",
+            ),
+            (
+                OfficialRecord("TWSE", "1314", "2026-07-09", 8.90, 155_532),
+                90,
+                "VOLUME_MISMATCH",
+            ),
+        ]
+
+        for official, expected_score, expected_reason in cases:
+            with self.subTest(reason=expected_reason):
+                validation = validate_market_data(goodinfo, official)
+
+                self.assertFalse(validation.is_valid)
+                self.assertEqual(validation.confidence_score, expected_score)
+                self.assertEqual(validation.verification_reason, expected_reason)
 
     def test_success_report_includes_100_percent_confidence_gate(self) -> None:
         goodinfo = MarketDataRecord(
@@ -279,6 +328,7 @@ class MarketDataFetcherTests(unittest.TestCase):
         report = build_report(goodinfo, official, validation, datetime(2026, 7, 10, 13, 29, 43))
 
         self.assertEqual(report["confidence_score"], 100)
+        self.assertEqual(report["verification_reason"], "PASS")
         self.assertTrue(report["hermes_analysis_allowed"])
         self.assertEqual(
             report["confidence_checks"],
@@ -333,12 +383,13 @@ class MarketDataFetcherTests(unittest.TestCase):
         self.assertEqual(audit["goodinfo_raw"]["close_price"], 8.90)
         self.assertEqual(audit["official_raw"]["close_price"], 8.91)
         self.assertLess(audit["confidence_score"], 100)
+        self.assertEqual(audit["verification_reason"], "PRICE_MISMATCH")
         self.assertFalse(audit["success"])
         self.assertEqual(audit["error_message"], "close mismatch")
 
     def test_source_failure_returns_fail_safe_report_and_audit_log(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("market_data_fetcher.fetch_goodinfo_record", side_effect=ValueError("Goodinfo unavailable")):
+            with patch("market_data_fetcher.fetch_goodinfo_record", side_effect=TimeoutError("Goodinfo timeout")):
                 report = fetch_validate_and_save(
                     "1314",
                     "2026-07-09",
@@ -350,8 +401,9 @@ class MarketDataFetcherTests(unittest.TestCase):
 
         self.assertEqual(report["validation_status"], DATA_VALIDATION_FAILED)
         self.assertEqual(report["confidence_score"], 0)
+        self.assertEqual(report["verification_reason"], "GOODINFO_TIMEOUT")
         self.assertFalse(report["hermes_analysis_allowed"])
-        self.assertIn("Goodinfo unavailable", report["error_message"])
+        self.assertIn("Goodinfo timeout", report["error_message"])
         self.assertNotIn("goodinfo_raw", report)
         self.assertEqual(len(audit_files), 1)
 

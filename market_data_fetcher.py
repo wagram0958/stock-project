@@ -24,6 +24,22 @@ DEFAULT_AUDIT_LOG_DIR = Path("logs/market_validation")
 DATA_VALIDATION_FAILED = "DATA_VALIDATION_FAILED"
 VALIDATION_SUCCESS = "驗證成功"
 CONFIDENCE_CHECKS = ["Goodinfo", "TWSE / TPEx", "股票代號", "交易日期", "收盤價", "成交量"]
+CONFIDENCE_WEIGHTS = {
+    "Goodinfo": 20,
+    "TWSE / TPEx": 20,
+    "股票代號": 20,
+    "交易日期": 20,
+    "成交量": 10,
+    "收盤價": 10,
+}
+VERIFICATION_REASONS = {
+    "Goodinfo": "GOODINFO_TIMEOUT",
+    "TWSE / TPEx": "TWSE_MISMATCH",
+    "股票代號": "WRONG_SYMBOL",
+    "交易日期": "WRONG_DATE",
+    "收盤價": "PRICE_MISMATCH",
+    "成交量": "VOLUME_MISMATCH",
+}
 
 
 @dataclass(frozen=True)
@@ -57,6 +73,7 @@ class ValidationResult:
     mismatches: list[str]
     confidence_score: int
     checks: dict[str, bool]
+    verification_reason: str
 
 
 class TableParser(HTMLParser):
@@ -384,22 +401,35 @@ def validate_market_data(goodinfo: MarketDataRecord, official: OfficialRecord) -
     confidence_score = calculate_confidence_score(checks)
 
     if confidence_score != 100:
-        return ValidationResult(False, DATA_VALIDATION_FAILED, mismatches, confidence_score, checks)
-    return ValidationResult(True, VALIDATION_SUCCESS, [], confidence_score, checks)
+        return ValidationResult(
+            False,
+            DATA_VALIDATION_FAILED,
+            mismatches,
+            confidence_score,
+            checks,
+            verification_reason_for_mismatches(mismatches),
+        )
+    return ValidationResult(True, VALIDATION_SUCCESS, [], confidence_score, checks, "PASS")
 
 
 def failed_validation_result(error_check: str) -> ValidationResult:
     checks = {name: False for name in CONFIDENCE_CHECKS}
     if error_check in checks:
         checks[error_check] = False
-    return ValidationResult(False, DATA_VALIDATION_FAILED, list(checks), 0, checks)
+    return ValidationResult(False, DATA_VALIDATION_FAILED, list(checks), 0, checks, VERIFICATION_REASONS.get(error_check, "SOURCE_FAILED"))
 
 
 def calculate_confidence_score(checks: dict[str, bool]) -> int:
-    if not checks:
-        return 0
-    passed = sum(1 for passed_check in checks.values() if passed_check)
-    return round(passed / len(checks) * 100)
+    return sum(weight for name, weight in CONFIDENCE_WEIGHTS.items() if checks.get(name, False))
+
+
+def verification_reason_for_mismatches(mismatches: list[str]) -> str:
+    if not mismatches:
+        return "PASS"
+    for check_name in CONFIDENCE_CHECKS:
+        if check_name in mismatches:
+            return VERIFICATION_REASONS[check_name]
+    return "VALIDATION_MISMATCH"
 
 
 def build_report(
@@ -417,6 +447,7 @@ def build_report(
         "validation_status": validation.status,
         "confidence_score": validation.confidence_score,
         "confidence_checks": validation.checks,
+        "verification_reason": validation.verification_reason,
         "hermes_analysis_allowed": validation.confidence_score == 100,
         "is_delayed": True,
     }
@@ -472,6 +503,7 @@ def save_audit_log(
         "official_raw": asdict(official) if official else None,
         "confidence_score": validation.confidence_score,
         "confidence_checks": validation.checks,
+        "verification_reason": validation.verification_reason,
         "success": validation.is_valid,
         "error_message": error_message,
     }
@@ -502,6 +534,7 @@ def build_fail_safe_report(
         "validation_status": DATA_VALIDATION_FAILED,
         "confidence_score": validation.confidence_score,
         "confidence_checks": validation.checks,
+        "verification_reason": validation.verification_reason,
         "hermes_analysis_allowed": False,
         "error_message": error_message,
     }
@@ -531,9 +564,10 @@ def fetch_validate_and_save(
         report = build_report(goodinfo, official, validation, fetched_at)
         if not validation.is_valid:
             error_message = ", ".join(validation.mismatches)
-    except (URLError, ValueError, json.JSONDecodeError, csv.Error) as exc:
+    except (TimeoutError, URLError, ValueError, json.JSONDecodeError, csv.Error) as exc:
         error_message = str(exc)
-        validation = failed_validation_result("Goodinfo" if goodinfo is None else "TWSE / TPEx")
+        failed_source = classify_failed_source(goodinfo, exc)
+        validation = failed_validation_result(failed_source)
         report = build_fail_safe_report(symbol, trade_date, fetched_at, validation, error_message)
 
     saved_path = save_report(report, output_root)
@@ -541,6 +575,12 @@ def fetch_validate_and_save(
     report["saved_path"] = str(saved_path)
     report["audit_log_path"] = str(audit_path)
     return report
+
+
+def classify_failed_source(goodinfo: MarketDataRecord | None, exc: BaseException) -> str:
+    if goodinfo is None:
+        return "Goodinfo"
+    return "TWSE / TPEx"
 
 
 def parse_args() -> argparse.Namespace:
