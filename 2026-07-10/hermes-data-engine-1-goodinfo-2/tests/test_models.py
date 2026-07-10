@@ -75,6 +75,17 @@ def test_quality_aggregates_worst_observation_status():
     assert document["quality"]["status"] == "partial"
 
 
+def test_unverified_non_null_observation_is_valid_and_partial():
+    observations = sample_observations()
+    observations["price"] = Observation(
+        42.5, "Goodinfo", "2026-07-10", "2026-07-10T08:00:00Z", "unverified"
+    )
+    document = build_document("3033", observations, "2026-07-10T09:00:00Z")
+
+    assert document["quality"]["status"] == "partial"
+    validate_document(document)
+
+
 @pytest.mark.parametrize("status", ["mismatch", "stale"])
 def test_negative_eps_preserves_worse_quality_status(status):
     observations = sample_observations()
@@ -139,6 +150,7 @@ def test_schema_rejects_empty_or_invalid_provenance(key):
         ("fallback", None),
         ("mismatch", None),
         ("stale", None),
+        ("unverified", None),
     ],
 )
 def test_schema_rejects_value_status_inconsistency(status, value):

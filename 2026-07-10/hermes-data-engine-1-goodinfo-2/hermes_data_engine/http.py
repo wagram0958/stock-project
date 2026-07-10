@@ -29,6 +29,7 @@ def fetch_text(
         raise ValueError("attempts must be at least 1")
     opener = transport or urlopen
     request = Request(url, headers={"User-Agent": USER_AGENT})
+    failed_status: int | None = None
     for attempt in range(1, attempts + 1):
         try:
             with opener(request, timeout=timeout) as response:
@@ -38,6 +39,9 @@ def fetch_text(
             if transient and attempt < attempts:
                 sleep(0.1 * (2 ** (attempt - 1)))
                 continue
-            safe_url = _redacted_url(url)
-            raise RuntimeError(f"HTTP {exc.code} fetching {safe_url}") from exc
+            failed_status = exc.code
+            break
+    if failed_status is not None:
+        safe_url = _redacted_url(url)
+        raise RuntimeError(f"HTTP {failed_status} fetching {safe_url}") from None
     raise AssertionError("unreachable")

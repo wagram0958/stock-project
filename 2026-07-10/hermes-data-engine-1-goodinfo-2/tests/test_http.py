@@ -63,3 +63,10 @@ def test_fetch_text_does_not_retry_permanent_http_status_and_redacts_query_value
     assert "token=REDACTED" in str(error.value)
     assert "1314" not in str(error.value)
     assert "very-secret" not in str(error.value)
+    assert error.value.__cause__ is None
+    chain = []
+    current = error.value
+    while current is not None:
+        chain.append(str(current))
+        current = current.__cause__ or current.__context__
+    assert "very-secret" not in " ".join(chain)

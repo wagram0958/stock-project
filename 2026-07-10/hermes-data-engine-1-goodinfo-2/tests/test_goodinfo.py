@@ -31,7 +31,34 @@ def test_parse_goodinfo_maps_required_daily_fields():
     assert all(item.source == "Goodinfo" for item in result.values())
     assert all(item.as_of == "2026-07-09" for item in result.values())
     assert all(item.fetched_at == FETCHED_AT for item in result.values())
-    assert all(item.status == "verified" for item in result.values())
+    assert all(item.status == "unverified" for item in result.values())
+
+
+def test_parse_goodinfo_marks_scalar_null_unavailable():
+    html = FIXTURE.read_text(encoding="utf-8").replace(">42.50<", ">-<")
+    result = parse_goodinfo(html, "1314", FETCHED_AT)
+
+    assert result["price"].value is None
+    assert result["price"].status == "unavailable"
+
+
+@pytest.mark.parametrize(
+    ("original", "field"),
+    [
+        ("18.25%", "daytrade"),
+        ("2,253", "daytrade"),
+        ("8,100", "margin"),
+        ("-120", "margin"),
+        ("95", "short"),
+        ("1.17%", "short"),
+    ],
+)
+def test_parse_goodinfo_marks_incomplete_composite_unavailable(original, field):
+    html = FIXTURE.read_text(encoding="utf-8").replace(original, "-", 1)
+    result = parse_goodinfo(html, "1314", FETCHED_AT)
+
+    assert result[field].value is None
+    assert result[field].status == "unavailable"
 
 
 def test_parse_goodinfo_rejects_changed_required_header():

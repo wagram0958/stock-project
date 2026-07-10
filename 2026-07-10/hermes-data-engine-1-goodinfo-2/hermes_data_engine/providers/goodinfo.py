@@ -107,8 +107,17 @@ def parse_goodinfo(
         "dealer": lots_to_shares(row["自營商買賣超(張)"]),
         "date": as_of,
     }
+    for field in ("daytrade", "margin", "short"):
+        if any(member is None for member in values[field].values()):
+            values[field] = None
     return {
-        field: Observation(value, "Goodinfo", as_of, fetched_at, "verified")
+        field: Observation(
+            value,
+            "Goodinfo",
+            as_of,
+            fetched_at,
+            "unavailable" if value is None else "unverified",
+        )
         for field, value in values.items()
     }
 
