@@ -1,0 +1,29 @@
+{
+  "symbol": "1216",
+  "name": "統一",
+  "trade_date": "2026-07-09",
+  "fetched_at": "2026-07-10T13:29:44",
+  "session": "盤中",
+  "validation_status": "驗證成功",
+  "is_delayed": true,
+  "goodinfo_raw": {
+    "symbol": "1216",
+    "name": "統一",
+    "trade_date": "2026-07-09",
+    "open_price": 78.3,
+    "high_price": 79.0,
+    "low_price": 78.2,
+    "close_price": 78.4,
+    "previous_close": 78.6,
+    "change": -0.2,
+    "change_percent": -0.25,
+    "volume": 18982
+  },
+  "official_raw": {
+    "source": "TWSE",
+    "symbol": "1216",
+    "trade_date": "2026-07-09",
+    "close_price": 78.4,
+    "volume": 18982
+  }
+}

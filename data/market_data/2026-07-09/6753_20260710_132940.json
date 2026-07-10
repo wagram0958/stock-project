@@ -1,0 +1,29 @@
+{
+  "symbol": "6753",
+  "name": "龍德造船",
+  "trade_date": "2026-07-09",
+  "fetched_at": "2026-07-10T13:29:40",
+  "session": "盤中",
+  "validation_status": "驗證成功",
+  "is_delayed": true,
+  "goodinfo_raw": {
+    "symbol": "6753",
+    "name": "龍德造船",
+    "trade_date": "2026-07-09",
+    "open_price": 150.0,
+    "high_price": 160.0,
+    "low_price": 148.0,
+    "close_price": 148.0,
+    "previous_close": 154.0,
+    "change": -6.0,
+    "change_percent": -3.9,
+    "volume": 4796
+  },
+  "official_raw": {
+    "source": "TWSE",
+    "symbol": "6753",
+    "trade_date": "2026-07-09",
+    "close_price": 148.0,
+    "volume": 4796
+  }
+}

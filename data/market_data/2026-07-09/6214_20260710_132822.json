@@ -1,0 +1,29 @@
+{
+  "symbol": "6214",
+  "name": "精誠",
+  "trade_date": "2026-07-09",
+  "fetched_at": "2026-07-10T13:28:22",
+  "session": "盤中",
+  "validation_status": "驗證成功",
+  "is_delayed": true,
+  "goodinfo_raw": {
+    "symbol": "6214",
+    "name": "精誠",
+    "trade_date": "2026-07-09",
+    "open_price": 142.0,
+    "high_price": 147.0,
+    "low_price": 142.0,
+    "close_price": 143.5,
+    "previous_close": 135.0,
+    "change": 8.5,
+    "change_percent": 6.3,
+    "volume": 5156
+  },
+  "official_raw": {
+    "source": "TWSE",
+    "symbol": "6214",
+    "trade_date": "2026-07-09",
+    "close_price": 143.5,
+    "volume": 5156
+  }
+}

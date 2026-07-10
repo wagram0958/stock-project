@@ -1,0 +1,12 @@
+{
+  "symbol": "1216",
+  "name": "統一",
+  "trade_date": "2026-07-09",
+  "fetched_at": "2026-07-10T13:28:30",
+  "session": "盤中",
+  "validation_status": "資料驗證失敗",
+  "is_delayed": true,
+  "mismatches": [
+    "成交量"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "symbol": "1314",
+  "name": "中石化",
+  "trade_date": "2026-07-09",
+  "fetched_at": "2026-07-10T13:28:26",
+  "session": "盤中",
+  "validation_status": "驗證成功",
+  "is_delayed": true,
+  "goodinfo_raw": {
+    "symbol": "1314",
+    "name": "中石化",
+    "trade_date": "2026-07-09",
+    "open_price": 9.6,
+    "high_price": 9.61,
+    "low_price": 8.83,
+    "close_price": 8.9,
+    "previous_close": 9.7,
+    "change": -0.8,
+    "change_percent": -8.25,
+    "volume": 155533
+  },
+  "official_raw": {
+    "source": "TWSE",
+    "symbol": "1314",
+    "trade_date": "2026-07-09",
+    "close_price": 8.9,
+    "volume": 155533
+  }
+}

@@ -95,6 +95,18 @@ Only show stocks with at least 4 points:
 python stock_screener.py --min-score 4
 ```
 
+Fetch and validate Goodinfo daily market data against TWSE or TPEx official
+data:
+
+```bash
+python market_data_fetcher.py --symbol 2002 --date 2026-07-09
+```
+
+Validated reports are saved under `data/market_data/YYYY-MM-DD/`. If
+Goodinfo and the official source disagree on stock symbol, trade date, closing
+price, or volume, the command outputs `資料驗證失敗` and does not output price
+fields.
+
 ## CSV Format
 
 Your CSV file should include these columns:
