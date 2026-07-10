@@ -9,9 +9,55 @@ and management language may reveal underpriced opportunities or hidden risks.
 
 ## Fixed Watchlist
 
-| Ticker | Company | Market | Category | Why Track | Priority |
-|---|---|---|---|---|---|
-| 6226 | 光鼎 | Taiwan | LED / optoelectronics | LED-related company with recent trading attention and a need to verify whether price action is supported by revenue quality, margin recovery, cash flow, and management commentary. | High |
+| Ticker | Company | Market | Category | Position Status | Cost Basis | Why Track | Priority |
+|---|---|---|---|---|---:|---|---|
+| 3033 | 威健 | Taiwan | IC distribution / electronic components | Held | TWD 43.00 | Track monthly revenue, gross margin, inventory, receivables, cash conversion, AI/server-related component demand, and whether earnings growth supports valuation. | High |
+| 6226 | 光鼎 | Taiwan | LED / optoelectronics | Watchlist only | N/A | LED-related company with recent trading attention and a need to verify whether price action is supported by revenue quality, margin recovery, cash flow, and management commentary. | High |
+
+## 3033 威健 Position Card
+
+### Holding Baseline
+
+- **Position status:** Held
+- **Cost basis:** TWD 43.00 per share
+- **Analysis perspective:** All future reports must evaluate 威健 from the perspective of an existing shareholder, not as a new watchlist candidate.
+- **Primary objective:** Protect capital and profits while verifying whether revenue and EPS growth are durable.
+
+### Core Monitoring Items
+
+- Current price versus TWD 43.00 cost basis and unrealized return
+- Monthly revenue growth and whether growth is broad-based or driven by temporary pull-in
+- Quarterly gross margin, operating margin, EPS, and operating cash flow
+- Inventory and accounts-receivable growth relative to revenue
+- Cash conversion cycle and working-capital pressure
+- Product and customer exposure to AI servers, GPUs, industrial, automotive, networking, and embedded applications
+- Dividend policy and valuation versus comparable IC distributors
+- Institutional trading, major announcements, and material thesis changes
+
+### Position Risk Triggers
+
+Reassess the holding if any of the following occurs:
+
+- Monthly revenue turns into sustained year-over-year contraction
+- Inventory or receivables grow materially faster than revenue
+- Operating cash flow diverges negatively from reported earnings
+- Gross margin or operating margin contracts without a credible temporary explanation
+- The stock price rises substantially faster than EPS and reasonable valuation support
+- Management commentary becomes vague while demand or cash-flow indicators weaken
+
+### Reporting Requirement
+
+Future reports on 3033 must include:
+
+1. Latest price and date
+2. Cost basis: TWD 43.00
+3. Unrealized gain or loss percentage
+4. Support and resistance levels
+5. Monthly revenue trend
+6. Quarterly earnings and cash-flow quality
+7. Institutional activity
+8. Catalysts and thesis-breaking risks
+9. CIO action label: continue holding, reduce, add only on weakness, or exit
 
 ## 6226 光鼎 Research Checklist
 
