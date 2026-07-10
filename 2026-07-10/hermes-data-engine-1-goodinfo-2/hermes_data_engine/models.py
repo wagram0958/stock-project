@@ -1,6 +1,7 @@
 """Canonical observations and JSON-ready Hermes documents."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Mapping
 
 
@@ -37,6 +38,7 @@ OBSERVATION_STATUSES = frozenset(
     {"verified", "mismatch", "fallback", "stale", "unavailable"}
 )
 QUALITY_STATUSES = frozenset({"complete", "partial", "mismatch", "stale"})
+MARKETS = frozenset({"TWSE", "TPEX"})
 
 
 @dataclass(frozen=True)
@@ -95,7 +97,22 @@ def build_document(
 
     if document["eps"] is not None and document["eps"] <= 0:
         document["pe"] = None
+        document["sources"]["pe"]["status"] = "unavailable"
     return document
+
+
+def _is_nonempty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _is_iso_date(value: Any, *, timestamp: bool = False) -> bool:
+    if not _is_nonempty_string(value):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return not timestamp or "T" in value
 
 
 def validate_document(document: Mapping[str, Any]) -> None:
@@ -103,6 +120,17 @@ def validate_document(document: Mapping[str, Any]) -> None:
     for field in REQUIRED_FIELDS:
         if field not in document:
             raise ValueError(f"missing required field: {field}")
+
+    if document["schema_version"] != "1.0":
+        raise ValueError("invalid schema_version")
+    if not _is_nonempty_string(document["symbol"]):
+        raise ValueError("invalid symbol")
+    if document["market"] not in MARKETS:
+        raise ValueError("invalid market")
+    if document["currency"] != "TWD":
+        raise ValueError("invalid currency")
+    if not _is_iso_date(document["generated_at"], timestamp=True):
+        raise ValueError("invalid generated_at timestamp")
 
     sources = document["sources"]
     if not isinstance(sources, Mapping):
@@ -116,8 +144,19 @@ def validate_document(document: Mapping[str, Any]) -> None:
         for key in ("source", "as_of", "fetched_at", "status"):
             if key not in provenance:
                 raise ValueError(f"missing sources.{field}.{key}")
+            if not _is_nonempty_string(provenance[key]):
+                raise ValueError(f"invalid sources.{field}.{key}")
+        if not _is_iso_date(provenance["as_of"]):
+            raise ValueError(f"invalid sources.{field}.as_of")
+        if not _is_iso_date(provenance["fetched_at"], timestamp=True):
+            raise ValueError(f"invalid sources.{field}.fetched_at")
+        if "period" in provenance and not _is_nonempty_string(provenance["period"]):
+            raise ValueError(f"invalid sources.{field}.period")
         if provenance["status"] not in OBSERVATION_STATUSES:
             raise ValueError(f"invalid sources.{field}.status")
+        value = document[field]
+        if (provenance["status"] == "unavailable") != (value is None):
+            raise ValueError(f"inconsistent sources.{field}.status and value")
 
     quality = document["quality"]
     if not isinstance(quality, Mapping):
