@@ -1,0 +1,7 @@
+{
+  "data": [
+    {"symbol": "1314", "period": "2026-04", "publication_date": "2026-05-10", "revenue": "1,100"},
+    {"symbol": "1314", "period": "2026-05", "publication_date": "2026-06-10", "revenue": "1,250"},
+    {"symbol": "2002", "period": "2026-05", "publication_date": "2026-06-10", "revenue": "9,999"}
+  ]
+}
