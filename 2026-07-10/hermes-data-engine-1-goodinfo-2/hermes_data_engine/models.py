@@ -35,7 +35,7 @@ REQUIRED_FIELDS = (
 )
 
 OBSERVATION_STATUSES = frozenset(
-    {"verified", "mismatch", "fallback", "stale", "unavailable"}
+    {"verified", "unverified", "mismatch", "fallback", "stale", "unavailable"}
 )
 QUALITY_STATUSES = frozenset({"complete", "partial", "mismatch", "stale"})
 MARKETS = frozenset({"TWSE", "TPEX"})
