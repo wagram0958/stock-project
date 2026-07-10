@@ -70,3 +70,21 @@ def test_fetch_text_does_not_retry_permanent_http_status_and_redacts_query_value
         chain.append(str(current))
         current = current.__cause__ or current.__context__
     assert "very-secret" not in " ".join(chain)
+
+
+def test_fetch_text_converts_timeout_to_redacted_runtime_error():
+    def transport(request, timeout):
+        assert timeout == 3
+        raise TimeoutError("timed out token=very-secret")
+
+    with pytest.raises(RuntimeError) as error:
+        fetch_text(
+            "https://example.test/data?token=very-secret",
+            transport=transport,
+            timeout=3,
+        )
+
+    assert "timeout" in str(error.value).lower()
+    assert "token=REDACTED" in str(error.value)
+    assert "very-secret" not in str(error.value)
+    assert error.value.__cause__ is None

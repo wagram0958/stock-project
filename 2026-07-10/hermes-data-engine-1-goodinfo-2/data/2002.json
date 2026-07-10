@@ -1,0 +1,129 @@
+{
+  "cashflow": null,
+  "currency": "TWD",
+  "date": null,
+  "daytrade": null,
+  "dealer": null,
+  "eps": null,
+  "errors": [
+    {
+      "error": "missing required Goodinfo headers: 日期, 收盤價, 成交量(張), 當沖比率, 當沖量(張), 融資餘額(張), 融資增減(張), 融券餘額(張), 券資比, 外資買賣超(張), 投信買賣超(張), 自營商買賣超(張)",
+      "provider": "Goodinfo"
+    },
+    {
+      "error": "request timeout after 5s fetching https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY?<redacted>",
+      "provider": "TWSE"
+    },
+    {
+      "error": "request timeout after 5s fetching https://mops.twse.com.tw/api/revenue?<redacted>",
+      "provider": "MOPS"
+    },
+    {
+      "error": "HTTP 500 fetching https://query1.finance.yahoo.com/v8/finance/quote?<redacted>",
+      "provider": "Yahoo(Fallback)"
+    }
+  ],
+  "foreign": null,
+  "generated_at": "2026-07-11T06:52:24.902464+08:00",
+  "investment": null,
+  "margin": null,
+  "market": "TWSE",
+  "pb": null,
+  "pe": null,
+  "price": null,
+  "quality": {
+    "issues": [],
+    "status": "partial"
+  },
+  "revenue": null,
+  "schema_version": "1.0",
+  "short": null,
+  "sources": {
+    "cashflow": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "date": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "daytrade": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "dealer": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "eps": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "foreign": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "investment": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "margin": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "pb": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "pe": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "price": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "revenue": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "short": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    },
+    "volume": {
+      "as_of": "2026-07-10",
+      "fetched_at": "2026-07-11T06:52:24.902464+08:00",
+      "source": "Unavailable",
+      "status": "unavailable"
+    }
+  },
+  "symbol": "2002",
+  "volume": null
+}

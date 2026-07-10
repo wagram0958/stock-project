@@ -2,7 +2,7 @@
 
 from time import sleep
 from typing import Callable
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
@@ -30,6 +30,7 @@ def fetch_text(
     opener = transport or urlopen
     request = Request(url, headers={"User-Agent": USER_AGENT})
     failed_status: int | None = None
+    network_error: str | None = None
     for attempt in range(1, attempts + 1):
         try:
             with opener(request, timeout=timeout) as response:
@@ -41,7 +42,13 @@ def fetch_text(
                 continue
             failed_status = exc.code
             break
+        except (TimeoutError, URLError, OSError):
+            network_error = f"request timeout after {timeout}s"
+            break
     if failed_status is not None:
         safe_url = _redacted_url(url)
         raise RuntimeError(f"HTTP {failed_status} fetching {safe_url}") from None
+    if network_error is not None:
+        safe_url = _redacted_url(url)
+        raise RuntimeError(f"{network_error} fetching {safe_url}") from None
     raise AssertionError("unreachable")
