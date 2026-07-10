@@ -78,6 +78,11 @@ def _value(row: list, index: int, dataset: str, header: str):
     return value
 
 
+def _shares_to_lots(value: int | Decimal) -> int | Decimal:
+    lots = Decimal(value) / Decimal(1_000)
+    return int(lots) if lots == lots.to_integral_value() else lots
+
+
 def _dated(payload: dict, dataset: str, requested_date: str) -> str:
     actual = _dataset_date(payload.get("date"), dataset)
     if actual != requested_date:
@@ -91,12 +96,20 @@ def _parse_price(text: str, requested_date: str) -> tuple[str, dict]:
     dataset = "price"
     payload = _payload(text, dataset)
     indices = _indices(payload, dataset, ("日期", "成交股數", "收盤價"))
-    row = payload["data"][0]
-    actual = _dataset_date(row[indices["日期"]], dataset)
-    if actual != requested_date:
+    row = None
+    for candidate in payload["data"]:
+        try:
+            candidate_date = _dataset_date(candidate[indices["日期"]], dataset)
+        except (IndexError, TypeError) as exc:
+            raise ProviderDataError(f"TWSE {dataset} has a row without 日期") from exc
+        if candidate_date == requested_date:
+            row = candidate
+            break
+    if row is None:
         raise ProviderDataError(
-            f"TWSE {dataset} dataset date {actual} does not match requested date {requested_date}"
+            f"TWSE {dataset} response has no requested date {requested_date}"
         )
+    actual = requested_date
     return actual, {
         "price": _value(row, indices["收盤價"], dataset, "收盤價"),
         "volume": _value(row, indices["成交股數"], dataset, "成交股數"),
@@ -119,7 +132,7 @@ def _parse_margin(text: str, symbol: str, requested_date: str) -> tuple[str, dic
     ) if margin_balance else None
     return actual, {
         "margin": {"balance": lots_to_shares(margin_balance), "change": lots_to_shares(margin_balance - margin_previous)},
-        "short": {"balance": lots_to_shares(short_balance), "change": lots_to_shares(short_balance - short_previous), "ratio": ratio},
+        "short": None if ratio is None else {"balance": lots_to_shares(short_balance), "change": lots_to_shares(short_balance - short_previous), "ratio": ratio},
     }
 
 
@@ -154,7 +167,7 @@ class TwseProvider:
             self.fetcher(self._url("dayTrading/TWTB4U", {"date": compact_date, "selectType": "All"})),
             "daytrade", symbol, trading_date, "證券代號", ("當沖成交股數", "當沖成交比率"),
         )
-        dates_and_values.append((actual, {"daytrade": {"volume": daytrade["當沖成交股數"], "ratio": daytrade["當沖成交比率"]}}))
+        dates_and_values.append((actual, {"daytrade": {"volume": _shares_to_lots(daytrade["當沖成交股數"]), "ratio": daytrade["當沖成交比率"]}}))
         actual, institutional = _parse_symbol_dataset(
             self.fetcher(self._url("fund/T86", {"date": compact_date, "selectType": "ALLBUT0999"})),
             "institutional", symbol, trading_date, "證券代號",
@@ -175,6 +188,12 @@ class TwseProvider:
             values.update(parsed)
         values["date"] = trading_date
         return {
-            field: Observation(value, "TWSE", trading_date, fetched_at, "unverified")
+            field: Observation(
+                value,
+                "TWSE",
+                trading_date,
+                fetched_at,
+                "unavailable" if value is None else "unverified",
+            )
             for field, value in values.items()
         }

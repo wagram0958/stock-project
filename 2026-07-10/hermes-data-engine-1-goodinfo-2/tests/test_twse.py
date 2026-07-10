@@ -44,8 +44,9 @@ def test_fetches_official_cross_validation_fields_with_units_and_provenance():
     }
     assert result["daytrade"].value == {
         "ratio": Decimal("27.95"),
-        "volume": 345_000,
+        "volume": 345,
     }
+    assert isinstance(result["daytrade"].value["volume"], int)
     assert result["foreign"].value == 100_500
     assert result["investment"].value == -20_000
     assert result["dealer"].value == 3_500
@@ -83,3 +84,16 @@ def test_rejects_changed_required_official_header():
     payload["fields"][3] = "當沖交易量"
     with pytest.raises(ProviderDataError, match="daytrade.*當沖成交股數"):
         _provider({"TWTB4U": json.dumps(payload)}).fetch("3033", "2026-07-09")
+
+
+def test_zero_margin_balance_makes_short_composite_unavailable():
+    payload = json.loads(_fixture("twse_margin.json"))
+    payload["data"][0][2] = "0"
+
+    result = _provider({"MI_MARGN": json.dumps(payload)}).fetch(
+        "3033", "2026-07-09"
+    )
+
+    assert result["margin"].value == {"balance": 0, "change": -1_200_000}
+    assert result["short"].value is None
+    assert result["short"].status == "unavailable"
