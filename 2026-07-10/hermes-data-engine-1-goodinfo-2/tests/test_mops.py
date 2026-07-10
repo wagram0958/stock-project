@@ -43,3 +43,11 @@ def test_mops_requires_exact_symbol():
     provider = MopsProvider(fetcher=_fetcher, clock=lambda: FETCHED_AT)
     with pytest.raises(ValueError, match="exact symbol"):
         provider.fetch("9999")
+
+
+def test_mops_fails_when_symbol_has_no_records_published_by_fetch_date():
+    provider = MopsProvider(
+        fetcher=_fetcher, clock=lambda: "2026-01-01T08:00:00+08:00"
+    )
+    with pytest.raises(ValueError, match="no published exact symbol"):
+        provider.fetch("1314")
