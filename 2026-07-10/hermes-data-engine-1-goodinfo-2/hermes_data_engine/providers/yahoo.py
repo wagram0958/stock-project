@@ -66,6 +66,12 @@ def _quote_values(text: str, expected_symbol: str) -> dict:
             values[field] = normalize_number(record.get(key))
         except ValueError as exc:
             raise YahooDataError(f"Yahoo quote has invalid {key}") from exc
+    try:
+        earnings = normalize_number(record.get("epsTrailingTwelveMonths"))
+    except ValueError as exc:
+        raise YahooDataError("Yahoo quote has invalid epsTrailingTwelveMonths") from exc
+    if earnings is None or earnings <= 0:
+        values["pe"] = None
     return values
 
 

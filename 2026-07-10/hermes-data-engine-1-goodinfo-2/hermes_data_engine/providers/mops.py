@@ -35,10 +35,15 @@ def _publication_date(row: dict, dataset: str) -> str:
         raise MopsDataError(f"MOPS {dataset} has invalid publication date") from exc
 
 
-def _latest(text: str, dataset: str, symbol: str) -> dict:
-    matches = [row for row in _rows(text, dataset) if row.get("symbol") == symbol]
+def _latest(text: str, dataset: str, symbol: str, cutoff: date) -> dict:
+    matches = [
+        row for row in _rows(text, dataset)
+        if row.get("symbol") == symbol and _publication_date(row, dataset) <= cutoff.isoformat()
+    ]
     if not matches:
-        raise MopsDataError(f"MOPS {dataset} response has no exact symbol {symbol}")
+        raise MopsDataError(
+            f"MOPS {dataset} response has no published exact symbol {symbol} by {cutoff}"
+        )
     return max(matches, key=lambda row: _publication_date(row, dataset))
 
 
@@ -66,8 +71,16 @@ class MopsProvider:
 
     def fetch(self, symbol: str) -> dict[str, Observation]:
         fetched_at = self.clock()
-        revenue = _latest(self.fetcher(self._url("revenue", symbol)), "revenue", symbol)
-        financial = _latest(self.fetcher(self._url("financial", symbol)), "financial", symbol)
+        try:
+            cutoff = datetime.fromisoformat(fetched_at.replace("Z", "+00:00")).date()
+        except (AttributeError, ValueError) as exc:
+            raise MopsDataError("MOPS fetch clock returned an invalid timestamp") from exc
+        revenue = _latest(
+            self.fetcher(self._url("revenue", symbol)), "revenue", symbol, cutoff
+        )
+        financial = _latest(
+            self.fetcher(self._url("financial", symbol)), "financial", symbol, cutoff
+        )
         revenue_period = revenue.get("period")
         financial_period = financial.get("period")
         if not isinstance(revenue_period, str) or not revenue_period.strip():

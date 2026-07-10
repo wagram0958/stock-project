@@ -33,8 +33,22 @@ def test_yahoo_returns_exact_supported_allowlist_and_source():
 
 def test_yahoo_negative_earnings_does_not_fabricate_pe():
     quote = json.loads((FIXTURES / "yahoo_quote.json").read_text(encoding="utf-8"))
-    quote["quoteResponse"]["result"][0]["trailingPE"] = None
+    quote["quoteResponse"]["result"][0]["trailingPE"] = 99.0
     quote["quoteResponse"]["result"][0]["epsTrailingTwelveMonths"] = -2.0
+
+    def fetcher(url):
+        return json.dumps(quote) if "/quote" in url else _fetcher(url)
+
+    result = YahooProvider(fetcher=fetcher, clock=lambda: FETCHED_AT).fetch(
+        "1314", "2026-07-09"
+    )
+    assert result["pe"].value is None
+    assert result["pe"].status == "unavailable"
+
+
+def test_yahoo_missing_earnings_fails_pe_closed():
+    quote = json.loads((FIXTURES / "yahoo_quote.json").read_text(encoding="utf-8"))
+    del quote["quoteResponse"]["result"][0]["epsTrailingTwelveMonths"]
 
     def fetcher(url):
         return json.dumps(quote) if "/quote" in url else _fetcher(url)
