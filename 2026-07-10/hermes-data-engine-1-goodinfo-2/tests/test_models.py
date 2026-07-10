@@ -48,6 +48,7 @@ def test_document_has_required_fields_and_provenance():
 
     assert set(REQUIRED_FIELDS) <= document.keys()
     assert document["pe"] is None
+    assert document["sources"]["pe"]["status"] == "unavailable"
     assert document["sources"]["price"] == {
         "source": "TWSE",
         "as_of": "2026-07-10",
@@ -87,4 +88,53 @@ def test_schema_rejects_missing_and_invalid_fields():
     )
     document["quality"]["status"] = "excellent"
     with pytest.raises(ValueError, match="quality.status"):
+        validate_document(document)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("schema_version", "2.0"),
+        ("symbol", ""),
+        ("market", "NASDAQ"),
+        ("currency", "USD"),
+        ("generated_at", "yesterday"),
+    ],
+)
+def test_schema_rejects_invalid_document_metadata(field, value):
+    document = build_document(
+        "3033", sample_observations(), "2026-07-10T09:00:00Z"
+    )
+    document[field] = value
+    with pytest.raises(ValueError, match=field):
+        validate_document(document)
+
+
+@pytest.mark.parametrize("key", ["source", "as_of", "fetched_at"])
+def test_schema_rejects_empty_or_invalid_provenance(key):
+    document = build_document(
+        "3033", sample_observations(), "2026-07-10T09:00:00Z"
+    )
+    document["sources"]["price"][key] = "" if key != "fetched_at" else "later"
+    with pytest.raises(ValueError, match=key):
+        validate_document(document)
+
+
+@pytest.mark.parametrize(
+    ("status", "value"),
+    [
+        ("unavailable", 42.5),
+        ("verified", None),
+        ("fallback", None),
+        ("mismatch", None),
+        ("stale", None),
+    ],
+)
+def test_schema_rejects_value_status_inconsistency(status, value):
+    document = build_document(
+        "3033", sample_observations(), "2026-07-10T09:00:00Z"
+    )
+    document["price"] = value
+    document["sources"]["price"]["status"] = status
+    with pytest.raises(ValueError, match="sources.price.status"):
         validate_document(document)
