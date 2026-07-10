@@ -1,0 +1,8 @@
+{
+  "data": [
+    {"symbol": "1314", "period": "2025-Q4", "publication_date": "2026-03-20", "basic_eps_cumulative": "1.80", "operating_cash_flow_cumulative": "850"},
+    {"symbol": "1314", "period": "2026-Q1", "publication_date": "2026-05-15", "basic_eps_cumulative": "0.55", "operating_cash_flow_cumulative": "320"},
+    {"symbol": "2002", "period": "2026-Q1", "publication_date": "2026-05-15", "basic_eps_cumulative": "8.88", "operating_cash_flow_cumulative": "999"},
+    {"symbol": "1314", "period": "2026-Q2", "publication_date": "2026-07-11", "basic_eps_cumulative": "1.25", "operating_cash_flow_cumulative": "700"}
+  ]
+}
