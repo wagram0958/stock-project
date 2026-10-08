@@ -27,6 +27,8 @@ jobs:
         run: python CGC-DK-Lab/scripts/validate_history.py CGC-DK-Lab/data/cleaned/lotto649_official.csv
       - name: Build time-safe features
         run: python CGC-DK-Lab/scripts/build_features.py CGC-DK-Lab/data/cleaned/lotto649_official.csv CGC-DK-Lab/data/cleaned/features.csv
+      - name: Ensure reports directory exists
+        run: mkdir -p CGC-DK-Lab/reports
       - name: Walk-forward exploratory backtest
         run: python CGC-DK-Lab/scripts/walk_forward_backtest.py CGC-DK-Lab/data/cleaned/lotto649_official.csv 100 | tee CGC-DK-Lab/reports/backtest_latest.txt
       - name: Commit refreshed data and report
