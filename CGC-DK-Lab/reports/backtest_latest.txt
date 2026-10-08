@@ -1,0 +1,7 @@
+evaluated_draws=2076
+uniform_expected_mean_K=0.7346938776
+freq20: total_hits=1519, mean_K=0.731696, delta_vs_uniform=-0.002998
+freq50: total_hits=1595, mean_K=0.768304, delta_vs_uniform=0.033611
+omission: total_hits=1541, mean_K=0.742293, delta_vs_uniform=0.007599
+mix_fixed_v0: total_hits=1498, mean_K=0.721580, delta_vs_uniform=-0.013114
+NOTE: These are exploratory walk-forward results only, not forward evidence.

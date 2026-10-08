@@ -1,0 +1,9 @@
+{
+  "source": "https://api.taiwanlottery.com/TLCAPIWeB/Lottery/Lotto649Result",
+  "retrieved_at_asia_taipei": "2026-10-08T17:49:24.279633+08:00",
+  "start_month": "2004-01",
+  "end_month": "2026-10",
+  "rows": 2176,
+  "skipped_months": [],
+  "sha256_raw_json": "698f92e81e0b6a82300d30f3b7e5aca10e3051a4148de85187b5ffe79768b2d5"
+}
