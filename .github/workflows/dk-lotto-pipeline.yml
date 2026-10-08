@@ -3,24 +3,32 @@ name: DK Lotto Official Data Pipeline
 on:
   push:
     paths:
-      - "CGC-DK-Lab/scripts/fetch_official_history.py"
+      - "CGC-DK-Lab/scripts/*.py"
+      - "CGC-DK-Lab/tests/*.py"
       - ".github/workflows/dk-lotto-pipeline.yml"
   workflow_dispatch:
   schedule:
-    # 22:30 Asia/Taipei every Tuesday and Friday.
+    # 22:30 Asia/Taipei every Tuesday and Friday (14:30 UTC).
     - cron: "30 14 * * 2,5"
 
 permissions:
   contents: write
 
+concurrency:
+  group: dk-lotto-official-main
+  cancel-in-progress: true
+
 jobs:
   fetch-validate-backtest:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Offline regression tests (freeze integrity and scoring)
+        run: python -m unittest discover -s CGC-DK-Lab/tests -p 'test_*.py' -v
       - name: Fetch official Taiwan Lottery data
         run: python CGC-DK-Lab/scripts/fetch_official_history.py
       - name: Validate cleaned history
@@ -30,15 +38,24 @@ jobs:
       - name: Ensure reports directory exists
         run: mkdir -p CGC-DK-Lab/reports
       - name: Walk-forward exploratory backtest
-        run: python CGC-DK-Lab/scripts/walk_forward_backtest.py CGC-DK-Lab/data/cleaned/lotto649_official.csv 100 | tee CGC-DK-Lab/reports/backtest_latest.txt
-      - name: Commit refreshed data and report
+        shell: bash
+        run: |
+          set -euo pipefail
+          python CGC-DK-Lab/scripts/walk_forward_backtest.py CGC-DK-Lab/data/cleaned/lotto649_official.csv 100 | tee CGC-DK-Lab/reports/backtest_latest.txt
+      - name: Score frozen DK/CGC predictions against official history
+        run: |
+          python CGC-DK-Lab/scripts/score_ledger.py \
+            CGC-DK-Lab/data/cleaned/lotto649_official.csv \
+            CGC-DK-Lab/reports/dual_track_ledger.csv \
+            CGC-DK-Lab/reports/forward_scoreboard.md
+      - name: Commit validated history and reports
         run: |
           git config user.name "cgc-dk-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add CGC-DK-Lab/data CGC-DK-Lab/reports/backtest_latest.txt
+          git add CGC-DK-Lab/data CGC-DK-Lab/reports/backtest_latest.txt CGC-DK-Lab/reports/forward_scoreboard.md CGC-DK-Lab/reports/dual_track_ledger.csv
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "Refresh DK official lotto data and backtest"
+            git commit -m "Refresh official DK lotto history and scorecards"
             git push
           fi
