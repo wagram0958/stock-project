@@ -28,3 +28,20 @@
 - 歷史回測只作探索與模型篩選。
 - 真正成效只看未來正式凍結樣本。
 - 20 / 50 期只做描述；預設 100 個有效未來期做第一批正式評估。
+
+## 已落地的自動化（2026-10-08）
+
+GitHub Actions：`.github/workflows/dk-lotto-pipeline.yml`，每週二／五台灣時間 22:30 執行。當前已成功跑通一次完整版本：
+https://github.com/wagram0958/stock-project/actions/runs/37758839589
+
+- `data/raw/`：保存台彩官方 API JSON、SHA-256、抓取時間與來源。
+- `data/cleaned/`：驗證後歷史 CSV 與僅取前期資料的特徵。
+- `reports/backtest_latest.txt`：探索性歷史 walk-forward，比較多方法；**不算正式命中率**。
+- `reports/dual_track_ledger.csv`：DK 與 CGC 每期各唯一凍結六號及 Gate 0 狀態。
+- `scripts/score_ledger.py`：使用官方結果對獎；只把 Gate 0 已通過且開獎前凍結的紀錄計入正式前瞻。
+- `reports/forward_scoreboard.md`：累積各軌正式 K、最近 20／50 期、K 分布與 K≥2／K≥3 次數。樣本不足時列 N/A。
+- `tests/test_score_ledger.py`：測試凍結完整性、官方日期錯誤、資料修訂衝突、重複執行與 Gate 0 分流。
+
+每期官方結果以六個一般獎號核對，特別號另列。兩軌不得事後改號、合成 12 個號碼冒充更高命中率，也不得因探索性模型表現而倒改舊期。持續比較模型的方向是「未來的平均 K 和 K≥2／K≥3 集中程度」，但不能假設公平隨機大樂透必然可被預測。
+
+**DK 連線限制：** 現有 GitHub 自動化不等於可直接操作 DK 本身；沒有 DK 獨立事前輸出時，該軌必須標記缺交，不能由 CGC 偽造。模型版本升級只適用後續尚未凍結的期別。
