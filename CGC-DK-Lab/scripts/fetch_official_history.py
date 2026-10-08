@@ -103,8 +103,19 @@ def main():
         except Exception as e:
             skipped.append({"month":month,"error":str(e)})
         time.sleep(0.15)
-    # Dedupe by period, sort numerically. Keep last identical source row.
-    by_period={r["期別"]:r for r in all_rows if r["期別"]}
+    # Never publish partial official history when any month failed.
+    if skipped:
+        print(json.dumps(skipped, ensure_ascii=False, indent=2), file=sys.stderr)
+        raise SystemExit(f"official fetch incomplete: {len(skipped)} skipped months")
+    if not all_rows:
+        raise SystemExit("official fetch returned no rows")
+    # Repeated issue IDs must be identical; never silently overwrite conflicts.
+    by_period={}
+    for r in all_rows:
+        issue=r["期別"]
+        if issue in by_period and r != by_period[issue]:
+            raise SystemExit(f"conflicting official rows for issue {issue}")
+        by_period[issue]=r
     rows=sorted(by_period.values(),key=lambda r:int(r["期別"]))
     errors=validate(rows)
     if errors:
