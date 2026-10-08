@@ -1,2 +1,2 @@
 issue,scheduled_draw,freeze_time,status,dk_model,dk_numbers,cgc_model,cgc_numbers,dk_K,cgc_K,winner,notes
-115000095,2026-10-09T20:30:00+08:00,2026-10-07T20:29:34+08:00,FROZEN_GATE0_INCOMPLETE,R5H_v0.1,"01 02 03 04 05 20",CGC-FREQ50_v0.1,"04 12 14 26 29 35",,,,"Official pre-draw issue confirmation pending; numbers locked"
+115000095,2026-10-09T20:30:00+08:00,2026-10-07T20:29:34+08:00,FROZEN_GATE0_PASSED,R5H_v0.1,"01 02 03 04 05 20",CGC-FREQ50_v0.1,"04 12 14 26 29 35",,,,"Official issue/date and both model outputs independently verified from official data before 2026-10-09 draw on 2026-10-08; see append-only freeze audit; six numbers unchanged"
