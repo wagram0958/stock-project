@@ -8,8 +8,8 @@ on:
       - ".github/workflows/dk-lotto-pipeline.yml"
   workflow_dispatch:
   schedule:
-    # 22:30 Asia/Taipei every Tuesday and Friday (14:30 UTC).
-    - cron: "30 14 * * 2,5"
+    # 22:37 Asia/Taipei every Tuesday and Friday (14:37 UTC).
+    - cron: "37 14 * * 2,5"
 
 permissions:
   contents: write
