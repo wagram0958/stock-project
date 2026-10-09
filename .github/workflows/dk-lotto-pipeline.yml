@@ -8,15 +8,17 @@ on:
       - ".github/workflows/dk-lotto-pipeline.yml"
   workflow_dispatch:
   schedule:
-    # 22:37 Asia/Taipei every Tuesday and Friday (14:37 UTC).
+    # Primary run: 22:37 Asia/Taipei every Tuesday and Friday (14:37 UTC).
     - cron: "37 14 * * 2,5"
+    # Fallback run: 23:07 Asia/Taipei every Tuesday and Friday (15:07 UTC).
+    - cron: "7 15 * * 2,5"
 
 permissions:
   contents: write
 
 concurrency:
-  group: dk-lotto-official-main
-  cancel-in-progress: true
+  group: dk-lotto-official-${{ github.event_name }}
+  cancel-in-progress: false
 
 jobs:
   fetch-validate-backtest:
@@ -24,38 +26,97 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Offline regression tests (freeze integrity and scoring)
         run: python -m unittest discover -s CGC-DK-Lab/tests -p 'test_*.py' -v
+
       - name: Fetch official Taiwan Lottery data
         run: python CGC-DK-Lab/scripts/fetch_official_history.py
+
       - name: Validate cleaned history
         run: python CGC-DK-Lab/scripts/validate_history.py CGC-DK-Lab/data/cleaned/lotto649_official.csv
+
       - name: Build time-safe features
         run: python CGC-DK-Lab/scripts/build_features.py CGC-DK-Lab/data/cleaned/lotto649_official.csv CGC-DK-Lab/data/cleaned/features.csv
+
       - name: Ensure reports directory exists
         run: mkdir -p CGC-DK-Lab/reports
+
       - name: Walk-forward exploratory backtest
         shell: bash
         run: |
           set -euo pipefail
           python CGC-DK-Lab/scripts/walk_forward_backtest.py CGC-DK-Lab/data/cleaned/lotto649_official.csv 100 | tee CGC-DK-Lab/reports/backtest_latest.txt
+
       - name: Score frozen DK/CGC predictions against official history
         run: |
           python CGC-DK-Lab/scripts/score_ledger.py \
             CGC-DK-Lab/data/cleaned/lotto649_official.csv \
             CGC-DK-Lab/reports/dual_track_ledger.csv \
             CGC-DK-Lab/reports/forward_scoreboard.md
+
       - name: Commit validated history and reports
         run: |
           git config user.name "cgc-dk-bot"
           git config user.email "actions@users.noreply.github.com"
           git add CGC-DK-Lab/data CGC-DK-Lab/reports/backtest_latest.txt CGC-DK-Lab/reports/forward_scoreboard.md CGC-DK-Lab/reports/dual_track_ledger.csv
           if git diff --cached --quiet; then
-            echo "No changes"
+            echo "No validated data/report changes"
           else
             git commit -m "Refresh official DK lotto history and scorecards"
+            git push
+          fi
+
+      - name: Record pipeline outcome
+        if: always()
+        env:
+          RUN_STATUS: ${{ job.status }}
+        run: |
+          mkdir -p CGC-DK-Lab/reports
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone, timedelta
+          from pathlib import Path
+
+          tw = timezone(timedelta(hours=8))
+          payload = {
+              "recorded_at_asia_taipei": datetime.now(tw).isoformat(),
+              "status": os.environ.get("RUN_STATUS", "unknown"),
+              "event_name": os.environ.get("GITHUB_EVENT_NAME"),
+              "run_id": os.environ.get("GITHUB_RUN_ID"),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+              "workflow": os.environ.get("GITHUB_WORKFLOW"),
+              "ref": os.environ.get("GITHUB_REF"),
+              "sha": os.environ.get("GITHUB_SHA"),
+              "repository": os.environ.get("GITHUB_REPOSITORY"),
+              "run_url": (
+                  f"{os.environ.get('GITHUB_SERVER_URL')}/"
+                  f"{os.environ.get('GITHUB_REPOSITORY')}/actions/runs/"
+                  f"{os.environ.get('GITHUB_RUN_ID')}"
+              ),
+          }
+          Path("CGC-DK-Lab/reports/pipeline_last_run.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          print(json.dumps(payload, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Commit pipeline outcome
+        if: always()
+        env:
+          RUN_STATUS: ${{ job.status }}
+        run: |
+          git config user.name "cgc-dk-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add CGC-DK-Lab/reports/pipeline_last_run.json
+          if git diff --cached --quiet; then
+            echo "No pipeline outcome change"
+          else
+            git commit -m "Record DK lotto pipeline outcome: ${RUN_STATUS}"
             git push
           fi
