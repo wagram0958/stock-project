@@ -1,30 +1,29 @@
 #!/usr/bin/env python3
 """Fetch Taiwan Lotto 6/49 history from Taiwan Lottery's official JSON API.
 
+Uses an incremental month cache for routine runs:
+- first run/backfill: fetch any missing months from START through current month;
+- routine run: refresh the current and previous month only;
+- always rebuild and validate the full cleaned history from the cached official payloads.
+
 Source:
 https://api.taiwanlottery.com/TLCAPIWeB/Lottery/Lotto649Result
-
-For each target month:
-  ?period=&month=YYYY-MM&pageSize=31
-
-Writes:
-- data/raw/lotto649_official.json
-- data/cleaned/lotto649_official.csv
-- data/raw/lotto649_official.sha256
-- data/raw/fetch_metadata.json
 """
 from __future__ import annotations
-import csv, hashlib, json, ssl, sys, time, urllib.error, urllib.request
-from datetime import date, datetime, timezone, timedelta
+
+import csv, hashlib, json, ssl, sys, time, urllib.request
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 BASE="https://api.taiwanlottery.com/TLCAPIWeB/Lottery/Lotto649Result"
 START="2004-01"
 TW=timezone(timedelta(hours=8))
-UA="Mozilla/5.0 CGC-DK-Lab/1.1"
+UA="Mozilla/5.0 CGC-DK-Lab/1.2"
 ROOT=Path(__file__).resolve().parents[1]
 RAW=ROOT/"data"/"raw"
 CLEAN=ROOT/"data"/"cleaned"
+RAW_JSON=RAW/"lotto649_official.json"
+
 
 def months(start,end):
     sy,sm=map(int,start.split("-")); ey,em=map(int,end.split("-"))
@@ -32,7 +31,9 @@ def months(start,end):
     while (y,m)<=(ey,em):
         yield f"{y:04d}-{m:02d}"
         m+=1
-        if m==13: y,m=y+1,1
+        if m==13:
+            y,m=y+1,1
+
 
 def sslctx():
     ctx=ssl.create_default_context()
@@ -40,7 +41,8 @@ def sslctx():
         ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT
     return ctx
 
-def get_month(month,retries=4):
+
+def get_month(month,retries=5):
     url=f"{BASE}?period=&month={month}&pageSize=31"
     req=urllib.request.Request(url,headers={"User-Agent":UA,"Accept":"application/json"})
     last=None
@@ -51,8 +53,10 @@ def get_month(month,retries=4):
             return payload,url
         except Exception as e:
             last=e
-            if attempt<retries: time.sleep(1.5*attempt)
+            if attempt<retries:
+                time.sleep(min(10, 1.5*attempt))
     raise RuntimeError(f"{month}: {last}")
+
 
 def rows_from(payload):
     c=payload.get("content") or {}
@@ -75,6 +79,7 @@ def rows_from(payload):
         })
     return out
 
+
 def validate(rows):
     seen=set(); errs=[]
     for r in rows:
@@ -90,25 +95,67 @@ def validate(rows):
         if sp in nums: errs.append([p,"special_duplicates_main"])
     return errs
 
+
+def load_cache():
+    if not RAW_JSON.exists():
+        return {}
+    try:
+        entries=json.loads(RAW_JSON.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise SystemExit(f"cannot read existing official cache: {e}")
+    cache={}
+    for entry in entries:
+        month=str(entry.get("month",""))
+        if not month:
+            raise SystemExit("official cache contains entry without month")
+        if month in cache and entry != cache[month]:
+            raise SystemExit(f"conflicting cached payloads for month {month}")
+        cache[month]=entry
+    return cache
+
+
 def main():
-    RAW.mkdir(parents=True,exist_ok=True); CLEAN.mkdir(parents=True,exist_ok=True)
-    today=datetime.now(TW).date()
-    end=f"{today.year:04d}-{today.month:02d}"
-    all_rows=[]; raw_months=[]; skipped=[]
-    for month in months(START,end):
+    RAW.mkdir(parents=True,exist_ok=True)
+    CLEAN.mkdir(parents=True,exist_ok=True)
+
+    now=datetime.now(TW)
+    end=f"{now.year:04d}-{now.month:02d}"
+    required=list(months(START,end))
+    cache=load_cache()
+
+    missing=[m for m in required if m not in cache]
+    recent=required[-2:] if len(required)>=2 else required
+    targets=[]
+    for m in [*missing,*recent]:
+        if m not in targets:
+            targets.append(m)
+
+    refreshed=[]; skipped=[]
+    for month in targets:
         try:
             payload,url=get_month(month)
-            raw_months.append({"month":month,"url":url,"payload":payload})
-            all_rows.extend(rows_from(payload))
+            cache[month]={"month":month,"url":url,"payload":payload}
+            refreshed.append(month)
         except Exception as e:
             skipped.append({"month":month,"error":str(e)})
         time.sleep(0.15)
-    # Never publish partial official history when any month failed.
+
+    # Fail closed before publishing anything if a required refresh/backfill failed.
     if skipped:
-        print(json.dumps(skipped, ensure_ascii=False, indent=2), file=sys.stderr)
-        raise SystemExit(f"official fetch incomplete: {len(skipped)} skipped months")
+        print(json.dumps(skipped,ensure_ascii=False,indent=2),file=sys.stderr)
+        raise SystemExit(f"official fetch incomplete: {len(skipped)} failed target months")
+
+    missing_after=[m for m in required if m not in cache]
+    if missing_after:
+        raise SystemExit(f"official cache incomplete after refresh: {missing_after[:10]}")
+
+    raw_months=[cache[m] for m in required]
+    all_rows=[]
+    for entry in raw_months:
+        all_rows.extend(rows_from(entry["payload"]))
     if not all_rows:
-        raise SystemExit("official fetch returned no rows")
+        raise SystemExit("official cache produced no rows")
+
     # Repeated issue IDs must be identical; never silently overwrite conflicts.
     by_period={}
     for r in all_rows:
@@ -116,28 +163,44 @@ def main():
         if issue in by_period and r != by_period[issue]:
             raise SystemExit(f"conflicting official rows for issue {issue}")
         by_period[issue]=r
+
     rows=sorted(by_period.values(),key=lambda r:int(r["期別"]))
     errors=validate(rows)
     if errors:
         print(json.dumps(errors[:20],ensure_ascii=False,indent=2))
         raise SystemExit("validation failed")
+
     raw_bytes=json.dumps(raw_months,ensure_ascii=False,sort_keys=True).encode()
-    (RAW/"lotto649_official.json").write_bytes(raw_bytes)
+    RAW_JSON.write_bytes(raw_bytes)
     sha=hashlib.sha256(raw_bytes).hexdigest()
     (RAW/"lotto649_official.sha256").write_text(sha+"\n",encoding="utf-8")
+
     meta={
         "source":BASE,
         "retrieved_at_asia_taipei":datetime.now(TW).isoformat(),
-        "start_month":START,"end_month":end,
-        "rows":len(rows),"skipped_months":skipped,"sha256_raw_json":sha,
+        "mode":"incremental_month_cache",
+        "start_month":START,
+        "end_month":end,
+        "cached_months":len(raw_months),
+        "refreshed_months":refreshed,
+        "rows":len(rows),
+        "latest_period":rows[-1]["期別"],
+        "latest_draw_date":rows[-1]["開獎日期"],
+        "skipped_months":skipped,
+        "sha256_raw_json":sha,
     }
-    (RAW/"fetch_metadata.json").write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding="utf-8")
+    (RAW/"fetch_metadata.json").write_text(
+        json.dumps(meta,ensure_ascii=False,indent=2),encoding="utf-8"
+    )
+
     fields=["遊戲名稱","期別","開獎日期","獎號1","獎號2","獎號3","獎號4","獎號5","獎號6","特別號"]
     with open(CLEAN/"lotto649_official.csv","w",encoding="utf-8-sig",newline="") as f:
-        w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+        w=csv.DictWriter(f,fieldnames=fields)
+        w.writeheader()
+        w.writerows(rows)
+
     print(json.dumps(meta,ensure_ascii=False,indent=2))
-    if skipped:
-        print(f"WARNING skipped_months={len(skipped)}",file=sys.stderr)
+
 
 if __name__=="__main__":
     main()
