@@ -1,0 +1,6 @@
+{
+  "chart": {"result": [{
+    "timestamp": [1783526400, 1783612800],
+    "indicators": {"quote": [{"close": [41.5, 42.5], "volume": [1000000, 12345000]}]}
+  }], "error": null}
+}

@@ -1,0 +1,5 @@
+{
+  "quoteResponse": {"result": [{
+    "symbol": "1314.TW", "trailingPE": 12.5, "priceToBook": 1.75, "epsTrailingTwelveMonths": 3.4
+  }], "error": null}
+}
