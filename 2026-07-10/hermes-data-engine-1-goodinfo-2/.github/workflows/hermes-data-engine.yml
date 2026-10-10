@@ -35,7 +35,7 @@ jobs:
       - name: Generate Hermes JSON
         env:
           TZ: Asia/Taipei
-        run: hermes-data-engine run --output-dir data --symbols 3033,6214,6753,1314,2002
+        run: hermes-data-engine run --market-guard --output-dir data --symbols 3033,6214,6753,1314,2002
 
       - name: Validate generated JSON
         run: hermes-data-engine validate data/3033.json data/6214.json data/6753.json data/1314.json data/2002.json
