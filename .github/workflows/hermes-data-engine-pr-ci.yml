@@ -42,16 +42,26 @@ jobs:
           python -m hermes_data_engine.cli validate
           data/3033.json data/6214.json data/6753.json
           data/1314.json data/2002.json
-      - name: Report live-data readiness separately from schema
+      - name: Assert legacy snapshots cannot pass a market-data readiness gate
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          for p in sorted(Path("data").glob("*.json")):
-              d = json.loads(p.read_text(encoding="utf-8"))
-              status = d.get("quality", {}).get("status", "missing")
-              missing = [f for f in ("date", "price", "volume")
-                         if d.get(f) is None]
-              print(f"{p.name}: quality={status}; missing_critical={','.join(missing) or 'none'}")
-          print("Historical snapshots are NOT evidence of current live-provider readiness.")
+          from hermes_data_engine.readiness import assess_market_readiness
+
+          paths = sorted(Path("data").glob("*.json"))
+          assert len(paths) == 5, f"Expected five preserved legacy snapshots, found {len(paths)}"
+          for p in paths:
+              data = json.loads(p.read_text(encoding="utf-8"))
+              result = assess_market_readiness(
+                  data,
+                  "2026-07-10",
+                  session_confirmed=True,
+                  session_source="SYNTHETIC CI ATTESTATION -- NOT OFFICIAL PROOF",
+              )
+              print(f"{p.name}: ready={result['ready']} issues={result['issues']}")
+              assert not result["ready"], f"Legacy unusable snapshot unexpectedly passed: {p}"
+              assert "price_missing_or_invalid" in result["issues"]
+              assert "volume_missing_or_invalid" in result["issues"]
+          print("Expected blocks confirmed; zero real-time provider claims made.")
           PY
