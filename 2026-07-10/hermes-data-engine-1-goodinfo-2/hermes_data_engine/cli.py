@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from datetime import date, timedelta
 from functools import partial
@@ -16,6 +17,7 @@ from hermes_data_engine.providers.twse import TwseProvider
 from hermes_data_engine.providers.yahoo import YahooProvider
 from hermes_data_engine.storage import atomic_write, load_previous
 from hermes_data_engine.models import validate_document
+from hermes_data_engine.readiness import assess_market_readiness
 
 
 DEFAULT_SYMBOLS = ("3033", "6214", "6753", "1314", "2002")
@@ -34,6 +36,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("paths", nargs="+")
+
+    readiness_parser = subparsers.add_parser(
+        "readiness", help="Read-only, fail-closed check of end-of-day market data"
+    )
+    readiness_parser.add_argument("paths", nargs="+")
+    readiness_parser.add_argument("--expected-trading-date", required=True)
+    readiness_parser.add_argument(
+        "--official-session-confirmed", action="store_true",
+        help="Assert an independent official trading-day/closure verification"
+    )
+    readiness_parser.add_argument(
+        "--official-session-source",
+        help="Record the checked official market-calendar/result reference",
+    )
     return parser
 
 
@@ -96,6 +112,27 @@ def _validate(args) -> int:
     return 1 if failed else 0
 
 
+def _readiness(args) -> int:
+    failed = False
+    for raw_path in args.paths:
+        try:
+            document = load_previous(raw_path)
+            if document is None:
+                raise FileNotFoundError(raw_path)
+            result = assess_market_readiness(
+                document, args.expected_trading_date,
+                session_confirmed=args.official_session_confirmed,
+                session_source=args.official_session_source,
+            )
+            result["path"] = raw_path
+            failed |= not result["ready"]
+        except (OSError, ValueError, TypeError, KeyError) as exc:
+            failed = True
+            result = {"path": raw_path, "ready": False, "issues": [str(exc)]}
+        print(json.dumps(result, ensure_ascii=False))
+    return 1 if failed else 0
+
+
 def main(argv: list[str] | None = None, pipeline_factory=None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -104,6 +141,8 @@ def main(argv: list[str] | None = None, pipeline_factory=None) -> int:
         return _run(args, pipeline_factory)
     if args.command == "validate":
         return _validate(args)
+    if args.command == "readiness":
+        return _readiness(args)
     parser.error(f"unknown command {args.command}")
     return 2
 
