@@ -80,12 +80,13 @@ def test_open_market_and_ready_data_writes_approved_snapshot(monkeypatch, tmp_pa
 
 def test_bad_market_data_cannot_overwrite_previous_snapshot(monkeypatch, tmp_path):
     path = tmp_path / "3033.json"
-    path.write_text("PRESERVE_ORIGINAL", encoding="utf-8")
-    # Preexisting snapshots must validate; a bad marker causes load_previous to
-    # reject the file before write. No actual data is damaged.
+    original = ReadyPipeline().run("3033", "2026-10-07")
+    original_bytes = json.dumps(original, ensure_ascii=False).encode("utf-8")
+    path.write_bytes(original_bytes)
     pipeline = ReadyPipeline(price=None)
     assert run_guard(monkeypatch, tmp_path, pipeline) == 1
-    assert path.read_text() == "PRESERVE_ORIGINAL"
+    assert pipeline.calls == [("3033", "2026-10-08")]
+    assert path.read_bytes() == original_bytes
 
 
 def test_unusable_new_market_document_is_not_written(monkeypatch, tmp_path):
