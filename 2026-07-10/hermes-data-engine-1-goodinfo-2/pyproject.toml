@@ -10,5 +10,11 @@ requires-python = ">=3.12"
 [project.scripts]
 hermes-data-engine = "hermes_data_engine.cli:main"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["hermes_data_engine*"]
+exclude = ["data*", "tests*"]
+namespaces = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
