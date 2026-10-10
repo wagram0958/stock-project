@@ -80,3 +80,35 @@ When no date is supplied, the CLI uses the current Taipei business day and rolls
 ## Provider Limits
 
 Hermes does not bypass provider access controls, CAPTCHA, robots restrictions, or terms. Offline tests use fixtures. Live provider behavior can change, so the workflow validates every generated document before writing it to the repository.
+
+
+## Market Gate 0 (draft; offline tests passed, NOT yet live-accepted)
+
+The guarded run mode is `hermes-data-engine run --market-guard --output-dir data`.
+It queries the official TWSE annual cash-equity schedule at
+`https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule`, validates
+its ROC year and rows, and recognizes both closures (including non-trading
+settlement days) and informational **open** entries (last/first trade dates).
+
+- Scheduled market closure: log `MARKET_CLOSED_NO_WRITE`, skip all providers,
+  preserve every existing JSON, exit 0; this is a skip, **not a successful price update**.
+- Official calendar failure or wrong year: exit 1, with no write.
+- Scheduled market opening: only publish a symbol when actual `date`,
+  `price`, `volume` pass separate post-close TWSE/cross-verified
+  Goodinfo provenance and freshness checks. Empty, stale, unverified,
+  Yahoo-only, and conflicting critical inputs fail closed. Other symbols'
+  already-valid data is preserved if they fail.
+- This annual schedule cannot detect unscheduled closures (such as typhoons).
+  Official final-day data still must be fetched and verified; no price record
+  must be fabricated from a scheduled-open date.
+- The current historical JSON files for all five symbols remain **NOT READY**;
+  schema-valid is not market-valid. Real provider access, output quality, and
+  a root-level active workflow have **not** yet passed acceptance.
+- The nested historical `.github/workflows/hermes-data-engine.yml` is **not
+  recognized by GitHub Actions as an active scheduled workflow** until
+  deliberately moved into the repository-root `.github/workflows/` and
+  updated with the correct working directory. Do not activate it yet.
+
+`hermes-data-engine readiness --expected-trading-date YYYY-MM-DD PATH.json`
+is a standalone read-only inspection. It requires separately confirmed
+official session evidence and does not fetch or authenticate that evidence itself.
