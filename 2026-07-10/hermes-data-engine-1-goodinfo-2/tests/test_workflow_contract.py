@@ -14,7 +14,7 @@ def test_workflow_contract_for_daily_generation():
     assert "python-version: '3.12'" in text
     assert "\"pytest>=8,<9\"" in text
     assert "python -m pytest -q" in text
-    assert "hermes-data-engine run" in text
+    assert "hermes-data-engine run --market-guard" in text
     assert "hermes-data-engine validate" in text
     assert text.index("python -m pytest -q") < text.index("hermes-data-engine run")
     assert text.index("hermes-data-engine validate") < text.index("git commit")
