@@ -5,11 +5,15 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from functools import partial
 from pathlib import Path
 
 from hermes_data_engine.http import fetch_text
+from hermes_data_engine.exchange_calendar import (
+    TWSE_CALENDAR_URL, CalendarDataError, decode_calendar, scheduled_session,
+)
 from hermes_data_engine.pipeline import HermesPipeline
 from hermes_data_engine.providers.goodinfo import GoodinfoProvider
 from hermes_data_engine.providers.mops import MopsProvider
@@ -33,6 +37,10 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS))
     run_parser.add_argument("--timeout", type=int, default=10)
     run_parser.add_argument("--attempts", type=int, default=2)
+    run_parser.add_argument(
+        "--market-guard", action="store_true",
+        help="Require official session schedule and usable post-close market data before any write",
+    )
 
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("paths", nargs="+")
@@ -80,17 +88,52 @@ def effective_trading_date(today: date | None = None) -> str:
 
 def _run(args, pipeline_factory) -> int:
     output_dir = Path(args.output_dir)
+    guarded_date = None
+    if args.market_guard:
+        try:
+            chosen = date.fromisoformat(args.date) if args.date else datetime.now(
+                ZoneInfo("Asia/Taipei")
+            ).date()
+            official_text = _configured_fetcher(args.timeout, args.attempts)(
+                TWSE_CALENDAR_URL
+            )
+            calendar = decode_calendar(official_text, for_year=chosen.year)
+            session = scheduled_session(chosen, calendar)
+        except (CalendarDataError, ValueError, RuntimeError) as exc:
+            print(f"MARKET_GATE_BLOCKED: {exc}", file=sys.stderr)
+            return 1
+        if not session.scheduled_open:
+            print(
+                f"MARKET_CLOSED_NO_WRITE: {session.date} ({session.reason}) "
+                f"source={session.source}"
+            )
+            return 0
+        if not args.date:
+            now = datetime.now(ZoneInfo("Asia/Taipei"))
+            if now.time().hour < 14 and now.date() == chosen:
+                print("MARKET_GATE_BLOCKED: Wait until 14:00 Taipei for complete data",
+                      file=sys.stderr)
+                return 1
+        guarded_date = session.date
     failed = False
     try:
         pipeline = pipeline_factory(timeout=args.timeout, attempts=args.attempts)
     except TypeError:
         pipeline = pipeline_factory()
-    trading_date = args.date or effective_trading_date()
+    trading_date = guarded_date or args.date or effective_trading_date()
     for symbol in _symbols(args.symbols):
         path = output_dir / f"{symbol}.json"
         try:
             previous = load_previous(path)
             document = pipeline.run(symbol, trading_date, previous)
+            if args.market_guard:
+                verdict = assess_market_readiness(
+                    document, trading_date,
+                    session_confirmed=True,
+                    session_source=TWSE_CALENDAR_URL,
+                )
+                if not verdict["ready"]:
+                    raise ValueError("MARKET_DATA_NOT_READY: " + ",".join(verdict["issues"]))
             atomic_write(path, document)
         except Exception as exc:  # noqa: BLE001 - CLI reports per-symbol failures.
             failed = True
