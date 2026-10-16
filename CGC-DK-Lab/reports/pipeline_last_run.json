@@ -1,12 +1,12 @@
 {
-  "recorded_at_asia_taipei": "2026-10-17T02:19:02.570696+08:00",
+  "recorded_at_asia_taipei": "2026-10-17T02:46:37.014299+08:00",
   "status": "failure",
   "event_name": "schedule",
-  "run_id": "38946366114",
+  "run_id": "38949898210",
   "run_attempt": "1",
   "workflow": "DK Lotto Official Data Pipeline",
   "ref": "refs/heads/main",
-  "sha": "a9608ea2b0e1497b9c6b5502ac67b30e10cd49fa",
+  "sha": "88241553a1b6ed8419a5900dc55d7d235c37f64e",
   "repository": "wagram0958/stock-project",
-  "run_url": "https://github.com/wagram0958/stock-project/actions/runs/38946366114"
+  "run_url": "https://github.com/wagram0958/stock-project/actions/runs/38949898210"
 }
