@@ -1,6 +1,6 @@
 {
   "source": "https://api.taiwanlottery.com/TLCAPIWeB/Lottery/Lotto649Result",
-  "retrieved_at_asia_taipei": "2026-11-18T06:36:33.935576+08:00",
+  "retrieved_at_asia_taipei": "2026-11-18T06:51:56.307565+08:00",
   "mode": "incremental_month_cache",
   "start_month": "2004-01",
   "end_month": "2026-11",
