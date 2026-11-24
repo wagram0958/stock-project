@@ -1,6 +1,6 @@
 {
   "source": "https://api.taiwanlottery.com/TLCAPIWeB/Lottery/Lotto649Result",
-  "retrieved_at_asia_taipei": "2026-11-21T06:13:41.571303+08:00",
+  "retrieved_at_asia_taipei": "2026-11-25T07:36:42.317430+08:00",
   "mode": "incremental_month_cache",
   "start_month": "2004-01",
   "end_month": "2026-11",
@@ -9,9 +9,9 @@
     "2026-10",
     "2026-11"
   ],
-  "rows": 2189,
-  "latest_period": "115000107",
-  "latest_draw_date": "2026-11-20",
+  "rows": 2190,
+  "latest_period": "115000108",
+  "latest_draw_date": "2026-11-24",
   "skipped_months": [],
-  "sha256_raw_json": "7606ebe1df12880a9c24514713df5100151d28e3fa430633ffedf70c58fcee7d"
+  "sha256_raw_json": "b8d39955f51334f849d21a9785f2d59fe8a5e6b1daa549856c58328c3222c3eb"
 }

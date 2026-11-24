@@ -1,7 +1,7 @@
-evaluated_draws=2089
+evaluated_draws=2090
 uniform_expected_mean_K=0.7346938776
-freq20: total_hits=1520, mean_K=0.727621, delta_vs_uniform=-0.007073
-freq50: total_hits=1601, mean_K=0.766395, delta_vs_uniform=0.031702
-omission: total_hits=1557, mean_K=0.745333, delta_vs_uniform=0.010639
-mix_fixed_v0: total_hits=1508, mean_K=0.721876, delta_vs_uniform=-0.012817
+freq20: total_hits=1519, mean_K=0.726794, delta_vs_uniform=-0.007900
+freq50: total_hits=1597, mean_K=0.764115, delta_vs_uniform=0.029421
+omission: total_hits=1557, mean_K=0.744976, delta_vs_uniform=0.010282
+mix_fixed_v0: total_hits=1508, mean_K=0.721531, delta_vs_uniform=-0.013163
 NOTE: These are exploratory walk-forward results only, not forward evidence.
